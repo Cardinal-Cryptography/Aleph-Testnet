@@ -615,7 +615,7 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
     run_task('send-binary', regions, parallel)
 
     color_print('start nginx')
-    run_task('start-nginx')
+    run_task('run-nginx')
 
     color_print(f'establishing the environment took {round(time()-start, 2)}s')
     # run the experiment

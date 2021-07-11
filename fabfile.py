@@ -57,6 +57,8 @@ def run_nginx(conn):
 @task
 def run_protocol(conn, pid, delay='0'):
     ''' Runs the protocol.'''
+    # conn.run('sudo apt update')
+    # conn.run('sudo apt install -y dtach')
 
     path = '/home/ubuntu/testnet1'
     authorities = ["Damian", "Tomasz", "Zbyszko",
@@ -73,13 +75,16 @@ def run_protocol(conn, pid, delay='0'):
             f'/ip4/{address}/tcp/{30334+pid}/p2p/{keys[i]}')
 
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
+    # tmp fix
+    conn.run(f'mkdir -p /tmp/{auth}/chains/a0tnet1/keystore')
+    # conn.run(
+    #     f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
 
     reserved_nodes = " ".join(reserved_nodes)
 
-    with conn.cd(path):
-        # conn.run(
-        # f'./bin/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
-        cmd = f'./bin/aleph-node \
+    conn.run(
+        f'/home/ubuntu/testnet1/bin/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
+    cmd = f'/home/ubuntu/testnet1/bin/aleph-node \
                 --validator \
                 --chain testnet1 \
                 --base-path /tmp/{auth} \
@@ -94,8 +99,9 @@ def run_protocol(conn, pid, delay='0'):
                 --reserved-nodes {reserved_nodes} \
                 --rpc-cors all \
                 --rpc-methods Safe \
-                --node-key-file /tmp/{auth}/libp2p_secret'
-        print(cmd)
+                --node-key-file /tmp/{auth}/libp2p_secret \
+                2> {auth}-{pid}.log'
+    conn.run(f'echo {cmd} > /home/ubuntu/cmd.sh')
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {cmd}')
 
 
@@ -103,7 +109,7 @@ def run_protocol(conn, pid, delay='0'):
 def stop_world(conn):
     ''' Kills the committee member.'''
 
-    conn.run('pkill --signal ABRT -f gomel')
+    conn.run('killall -9 aleph-node')
 
 
 # ======================================================================================
