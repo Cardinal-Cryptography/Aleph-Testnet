@@ -603,7 +603,6 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
     sleep(120)
     # wait('open 22', regions)
 
-
     color_print('mkdir')
     run_task('mkdir', regions, parallel)
 
@@ -614,6 +613,9 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
 
     color_print('send the binary')
     run_task('send-binary', regions, parallel)
+
+    color_print('start nginx')
+    run_task('start-nginx')
 
     color_print(f'establishing the environment took {round(time()-start, 2)}s')
     # run the experiment

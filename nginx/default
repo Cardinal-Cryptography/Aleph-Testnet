@@ -1,0 +1,21 @@
+server {
+    listen 9932 ssl;
+
+    ssl_certificate self-signed.crt;
+    ssl_certificate_key self-signed.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:9933;
+    }
+}
+
+server {
+    listen 9942 ssl;
+
+    ssl_certificate self-signed.crt;
+    ssl_certificate_key self-signed.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:9944;
+    }
+}
