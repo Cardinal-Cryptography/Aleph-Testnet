@@ -258,7 +258,6 @@ def read_aws_keys():
 
 def generate_keys():
     ''' Generate signing keys for the committee.'''
-    # cmd = f'go run ../../../cmd/gomel-keys/main.go {n_parties} addresses'
     cmd = './bin/aleph-node dev-keys --base-path data --chain testnet1 --key-types aura alp0'
     call(cmd.split())
 
