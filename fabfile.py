@@ -57,10 +57,9 @@ def run_nginx(conn):
 @task
 def run_protocol(conn, pid, delay='0'):
     ''' Runs the protocol.'''
-    # conn.run('sudo apt update')
-    # conn.run('sudo apt install -y dtach')
+    conn.run('sudo apt update')
+    conn.run('sudo apt install -y dtach')
 
-    path = '/home/ubuntu/testnet1'
     authorities = ["Damian", "Tomasz", "Zbyszko",
                    "Hansu", "Adam", "Matt", "Antoni", "Michal"]
     pid = int(pid)
@@ -72,13 +71,13 @@ def run_protocol(conn, pid, delay='0'):
         keys = [key.strip() for key in f.readlines()]
     for i, address in enumerate(addresses):
         reserved_nodes.append(
-            f'/ip4/{address}/tcp/{30334+pid}/p2p/{keys[i]}')
+            f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
 
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
     # tmp fix
     conn.run(f'mkdir -p /tmp/{auth}/chains/a0tnet1/keystore')
-    # conn.run(
-    #     f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
+    conn.run(
+        f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
 
     reserved_nodes = " ".join(reserved_nodes)
 
@@ -89,9 +88,9 @@ def run_protocol(conn, pid, delay='0'):
                 --chain testnet1 \
                 --base-path /tmp/{auth} \
                 --name {auth} \
-                --rpc-port {9933 + pid} \
-                --ws-port {9944 + pid} \
-                --port {30334 + pid} \
+                --rpc-port 9933 \
+                --ws-port 9944 \
+                --port 30334 \
                 --execution Native \
                 --no-prometheus \
                 --no-telemetry \
@@ -100,9 +99,10 @@ def run_protocol(conn, pid, delay='0'):
                 --rpc-cors all \
                 --rpc-methods Safe \
                 --node-key-file /tmp/{auth}/libp2p_secret \
-                2> {auth}-{pid}.log'
+                2> {auth}-{pid}.log \
+                 '
     conn.run(f'echo {cmd} > /home/ubuntu/cmd.sh')
-    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {cmd}')
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
 @task
