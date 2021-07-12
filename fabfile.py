@@ -76,8 +76,8 @@ def run_protocol(conn, pid, delay='0'):
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
     # tmp fix
     conn.run(f'mkdir -p /tmp/{auth}/chains/a0tnet1/keystore')
-    conn.run(
-        f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
+    # conn.run(
+    #     f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
 
     reserved_nodes = " ".join(reserved_nodes)
 
@@ -99,9 +99,9 @@ def run_protocol(conn, pid, delay='0'):
                 --rpc-cors all \
                 --rpc-methods Safe \
                 --node-key-file /tmp/{auth}/libp2p_secret \
-                2> {auth}-{pid}.log \
-                 '
-    conn.run(f'echo {cmd} > /home/ubuntu/cmd.sh')
+                2> {auth}-{pid}.log'
+    conn.run("echo > /home/ubuntu/cmd.sh")
+    conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
