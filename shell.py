@@ -13,7 +13,7 @@ import boto3
 import numpy as np
 import zipfile
 
-from utils import image_id_in_region, default_region, init_key_pair, security_group_id_by_region, use_regions, generate_keys, n_parties_per_regions, color_print, write_addresses
+from utils import *
 
 import warnings
 warnings.filterwarnings(action='ignore',module='.*paramiko.*')
@@ -208,6 +208,11 @@ def run_cmd_in_region(cmd='tail -f ~/go/src/gitlab.com/alephledger/consensus-go/
 
     return results
 
+def allow_traffic_in_region(ip_list, region_name=default_region()):
+    '''Creates a security group with addresses in given ip_list.'''
+
+    update_security_group(region_name, ip_list)
+
 def wait_in_region(target_state, region_name=default_region()):
     '''Waits until all machines in a given region reach a given state.'''
 
@@ -347,6 +352,17 @@ def run_cmd(cmd='ls', regions=use_regions(), parallel=True, output=False):
 
     return exec_for_regions(partial(run_cmd_in_region, cmd, output=output), regions, parallel)
 
+def allow_traffic(ip_list, regions=use_regions(), parallel=True, output=False):
+    '''
+    Adds ip_list to security group enabling traffic among instances.
+    :param list ip_list: list of all allowed ips
+    :param list regions: collections of regions in which the tast should be performed
+    :param bool parallel: indicates whether task should be dispatched in parallel
+    :param bool output: indicates whether output of task is needed
+    '''
+
+    return exec_for_regions(partial(allow_traffic_in_region, ip_list, output=output), regions, parallel)
+
 def wait(target_state, regions=use_regions()):
     '''Waits until all machines in all given regions reach a given state.'''
 
@@ -355,7 +371,6 @@ def wait(target_state, regions=use_regions()):
 #======================================================================================
 #                               aggregates
 #======================================================================================
-
 
 def create_images(regions=use_regions(), image_name='gomel'):
     '''Creates images with golang set up for gomel.'''
@@ -545,6 +560,8 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
 
     write_addresses(ip_list)
     generate_keys()
+
+    allow_traffic(ip_list)
 
     color_print('waiting till ports are open on machines')
     sleep(120)
