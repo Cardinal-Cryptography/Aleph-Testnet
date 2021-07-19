@@ -1,10 +1,8 @@
 '''Helper functions for shell'''
 
-import json
 import os
 from pathlib import Path
 from subprocess import call
-from glob import glob
 
 import boto3
 
@@ -36,7 +34,7 @@ def vpc_id_in_region(region_name):
     return vpcs_ids[0]
 
 
-def create_security_group(region_name, security_group_name):
+def create_security_group(region_name, security_group_name='alephB', ip_list=[]):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
 
     ec2 = boto3.resource('ec2', region_name)
@@ -46,17 +44,10 @@ def create_security_group(region_name, security_group_name):
     sg = ec2.create_security_group(
         GroupName=security_group_name, Description='full sync', VpcId=vpc_id)
 
-    # authorize incomming connections to port 22 for ssh, mainly for debugging
-    # and to ports 9000, 10000, 11000, 12000 for syncing the dags
+    # authorize incomming connections to port 22 for ssh
     sg.authorize_ingress(
         GroupName=security_group_name,
         IpPermissions=[
-            {
-                'FromPort': 0,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '178.128.198.123/32'}],
-                'ToPort': 65535,
-            },
             {
                 'FromPort': 22,
                 'IpProtocol': 'tcp',
@@ -64,62 +55,57 @@ def create_security_group(region_name, security_group_name):
                 'ToPort': 22,
             },
             {
-                'FromPort': 9000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 9000,
+                'FromPort': 0,
+                'IpProtocol': '-1',
+                'IpRanges': [{'CidrIp': f'{ip}/32'} for ip in ip_list],
+                'ToPort': 65535,
             },
-            {
-                'FromPort': 10000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 10000,
-            },
-            {
-                'FromPort': 11000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 11000,
-            },
-            {
-                'FromPort': 12000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 12000,
-            },
-            {
-                'FromPort': 13000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 13000,
-            },
-            {
-                'FromPort': 14000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 14000,
-            },
-            {
-                'FromPort': 15000,
-                'IpProtocol': 'tcp',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 15000,
-            }
         ]
     )
-    # authorize outgoing connections from ports 8000-20000 for intiating syncs
+    # authorize outgoing connections with all protocols in VPC
     sg.authorize_egress(
         IpPermissions=[
             {
-                'FromPort': 8000,
-                'IpProtocol': 'tcp',
+                'FromPort': 0,
+                'IpProtocol': '-1',
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 20000,
+                'ToPort': 0,
             }
         ]
     )
 
-    return sg.id
+    return sg
+
+
+def update_security_group(region_name, security_group_name='alephB', ip_list=[]):
+    '''Creates security group that allows connecting via ssh and ports needed for sync'''
+
+    ec2 = boto3.resource('ec2', region_name)
+
+    for security_group in ec2.security_groups.all():
+        if security_group.group_name == security_group_name:
+            security_group.revoke_ingress(
+                IpPermissions=security_group.ip_permissions)
+
+            # authorize incomming connections to port 22 for ssh and
+            # all traffic from the given addresses
+            security_group.authorize_ingress(
+                GroupName=security_group_name,
+                IpPermissions=[
+                    {
+                        'FromPort': 22,
+                        'IpProtocol': 'tcp',
+                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
+                        'ToPort': 22,
+                    },
+                    {
+                        'FromPort': 0,
+                        'IpProtocol': '-1',
+                        'IpRanges': [{'CidrIp': f'{ip}/32'} for ip in ip_list],
+                        'ToPort': 65535,
+                    },
+                ]
+            )
 
 
 def security_group_id_by_region(region_name, security_group_name='alephB'):
@@ -132,7 +118,7 @@ def security_group_id_by_region(region_name, security_group_name='alephB'):
             return security_group.id
 
     # it seems that the group does not exist, let fix that
-    return create_security_group(region_name, security_group_name)
+    return create_security_group(region_name, security_group_name).id
 
 
 def check_key_uploaded_all_regions(key_name='aleph'):
@@ -148,7 +134,7 @@ def check_key_uploaded_all_regions(key_name='aleph'):
     with open(fingerprint_path, 'r') as f:
         fp = f.readline()
 
-    for region_name in available_regions():
+    for region_name in use_regions():
         ec2 = boto3.resource('ec2', region_name)
         # check if there is any key which fingerprint matches fp
         if not any(key.key_fingerprint == fp for key in ec2.key_pairs.all()):
@@ -272,17 +258,6 @@ def write_addresses(ip_list):
     with open('data/addresses', 'w') as f:
         for ip in ip_list:
             f.write(ip+'\n')
-
-
-def available_regions():
-    ''' Returns a list of all currently available regions.'''
-    non_badger_regions = list(
-        set(boto3.Session().get_available_regions('ec2'))-set(badger_regions()))
-    regions = badger_regions()+non_badger_regions
-    for rn in ['ap-northeast-2', 'eu-west-3', 'eu-west-2', 'eu-north-1']:
-        regions.remove(rn)
-
-    return regions
 
 
 def use_regions():
