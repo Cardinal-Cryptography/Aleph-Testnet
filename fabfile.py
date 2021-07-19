@@ -29,7 +29,6 @@ def send_binary(conn):
     path = '/home/ubuntu/testnet1/bin/'
     conn.put('bin/aleph-node', path)
 
-
 # ======================================================================================
 #                                       nginx
 # ======================================================================================
@@ -47,7 +46,6 @@ def run_nginx(conn):
 
     conn.run('sudo service nginx restart')
     conn.run('sudo service nginx status')
-
 
 # ======================================================================================
 #                                   run experiments
@@ -110,7 +108,6 @@ def stop_world(conn):
     ''' Kills the committee member.'''
 
     conn.run('killall -9 aleph-node')
-
 
 # ======================================================================================
 #                                        misc

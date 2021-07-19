@@ -83,7 +83,6 @@ def latency_in_region(region_name):
 
     return latency
 
-
 def create_instances(region_name, image_id, n_parties, instance_type, key_name, security_group_id):
     ''' Creates instances. '''
 
@@ -105,7 +104,6 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
 
     return instances
 
-
 def launch_new_instances_in_region(n_parties=1, region_name=default_region(), instance_type='t2.micro'):
     '''Launches n_parties in a given region.'''
 
@@ -116,7 +114,6 @@ def launch_new_instances_in_region(n_parties=1, region_name=default_region(), in
     image_id = image_id_in_region(region_name, 'ubuntu')
 
     return create_instances(region_name, image_id, n_parties, instance_type, 'aleph', security_group_id)
-
 
 def all_instances_in_region(region_name=default_region(), states=['running', 'pending']):
     '''Returns all running or pending instances in a given region.'''
@@ -129,14 +126,12 @@ def all_instances_in_region(region_name=default_region(), states=['running', 'pe
 
     return instances
 
-
 def terminate_instances_in_region(region_name=default_region()):
     '''Terminates all running instances in a given regions.'''
 
     print(region_name, 'terminating instances')
     for instance in all_instances_in_region(region_name):
         instance.terminate()
-
 
 def instances_ip_in_region(region_name=default_region()):
     '''Returns ips of all running or pending instances in a given region.'''
@@ -148,7 +143,6 @@ def instances_ip_in_region(region_name=default_region()):
 
     return ips
 
-
 def instances_state_in_region(region_name=default_region()):
     '''Returns states of all instances in a given regions.'''
 
@@ -158,7 +152,6 @@ def instances_state_in_region(region_name=default_region()):
         states.append(instance.state['Name'])
 
     return states
-
 
 def run_task_in_region(task='test', region_name=default_region(), parallel=False, output=False, pids=None, delay=0):
     '''
@@ -194,21 +187,6 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=False
     except Exception as _:
         print('paramiko troubles')
 
-
-def send_file_in_region(path='cmd/gomel/main.go', region_name=default_region()):
-    local = '../../' + path
-    remote = 'go/src/gitlab.com/alephledger/consensus-go/' + path
-
-    ip_list = instances_ip_in_region(region_name)
-    hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
-    scp = 'scp -o StrictHostKeyChecking=no -i key_pairs/aleph.pem'
-    cmd = 'parallel ' + scp + ' ' + local + ' {}:' + remote + ' ::: ' + hosts
-    try:
-        return call(cmd.split())
-    except Exception as e:
-        print(e)
-
-
 def run_cmd_in_region(cmd='tail -f ~/go/src/gitlab.com/alephledger/consensus-go/aleph.log', region_name=default_region(), output=False):
     '''
     Runs a shell command cmd on all instances in a given region.
@@ -229,7 +207,6 @@ def run_cmd_in_region(cmd='tail -f ~/go/src/gitlab.com/alephledger/consensus-go/
             results.append(call(cmd_, shell=True))
 
     return results
-
 
 def wait_in_region(target_state, region_name=default_region()):
     '''Waits until all machines in a given region reach a given state.'''
@@ -272,20 +249,6 @@ def wait_in_region(target_state, region_name=default_region()):
                 sleep(5)
         print()
 
-
-def installation_finished_in_region(region_name=default_region()):
-    '''Checks if installation has finished on all instances in a given region.'''
-
-    results = []
-    cmd = "tail -1 setup.log"
-    results = run_cmd_in_region(cmd, region_name, output=True)
-    for result in results:
-        if len(result) < 4 or result[:4] != b'done':
-            return False
-
-    print(f'installation in {region_name} finished')
-    return True
-
 #======================================================================================
 #                              routines for all regions
 #======================================================================================
@@ -311,7 +274,6 @@ def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None, dela
         return [res for res_list in results for res in res_list]
 
     return results
-
 
 def launch_new_instances(nppr, instance_type='t2.micro'):
     '''
@@ -343,36 +305,25 @@ def launch_new_instances(nppr, instance_type='t2.micro'):
     if failed:
         print('reporting complete failure in regions', failed)
 
-
 def terminate_instances(regions=use_regions(), parallel=True):
     '''Terminates all instances in ever region from given regions.'''
 
     return exec_for_regions(terminate_instances_in_region, regions, parallel)
-
 
 def all_instances(regions=use_regions(), states=['running','pending'], parallel=True):
     '''Returns all running or pending instances from given regions.'''
 
     return exec_for_regions(partial(all_instances_in_region, states=states), regions, parallel)
 
-
 def instances_ip(regions=use_regions(), parallel=True):
     '''Returns ip addresses of all running or pending instances from given regions.'''
 
     return exec_for_regions(instances_ip_in_region, regions, parallel)
 
-
 def instances_state(regions=use_regions(), parallel=True):
     '''Returns states of all instances in given regions.'''
 
     return exec_for_regions(instances_state_in_region, regions, parallel)
-
-
-def send_file(path='cmd/gomel/main.go', regions=use_regions()):
-    '''Sends file from specified path to all hosts in given regions.'''
-
-    return exec_for_regions(partial(send_file_in_region, path), regions, True)
-
 
 def run_task(task='test', regions=use_regions(), parallel=True, output=False, pids=None, delay=0):
     '''
@@ -385,7 +336,6 @@ def run_task(task='test', regions=use_regions(), parallel=True, output=False, pi
 
     return exec_for_regions(partial(run_task_in_region, task, parallel=parallel, output=output), regions, parallel, pids, delay)
 
-
 def run_cmd(cmd='ls', regions=use_regions(), parallel=True, output=False):
     '''
     Runs a shell command cmd on all instances in all given regions.
@@ -397,12 +347,10 @@ def run_cmd(cmd='ls', regions=use_regions(), parallel=True, output=False):
 
     return exec_for_regions(partial(run_cmd_in_region, cmd, output=output), regions, parallel)
 
-
 def wait(target_state, regions=use_regions()):
     '''Waits until all machines in all given regions reach a given state.'''
 
     exec_for_regions(partial(wait_in_region, target_state), regions)
-
 
 #======================================================================================
 #                               aggregates
@@ -561,11 +509,10 @@ t = run_task
 cmr = run_cmd_in_region
 cm = run_cmd
 
-ti = terminate_instances
 tir = terminate_instances_in_region
+ti = terminate_instances
 
 rs = lambda : run_protocol(7, use_regions(), 't2.micro', False)
-
 
 #======================================================================================
 #                                       run_protocol
@@ -618,8 +565,6 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
     run_task('run-nginx')
 
     color_print(f'establishing the environment took {round(time()-start, 2)}s')
+
     # run the experiment
-    if profiler:
-        run_task('run-protocol-profiler', regions, parallel, False, pids, time()+delay)
-    else:
-        run_task('run-protocol', regions, parallel, False, pids, time()+delay)
+    run_task('run-protocol-profiler', regions, parallel, False, pids, time()+delay)
