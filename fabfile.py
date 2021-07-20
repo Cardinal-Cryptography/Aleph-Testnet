@@ -1,7 +1,6 @@
 '''Routines called by fab. Assumes that all are called from */experiments/aws.'''
 
 from fabric import task
-from numpy import add
 
 # ======================================================================================
 #                                   setup
@@ -17,7 +16,7 @@ def setup(conn):
 
 
 @task
-def send_data(conn, pid):
+def send_data(conn):
     ''' Sends keys and addresses. '''
     # sends all the keys, refactor to send only the needed one
 
@@ -55,7 +54,7 @@ def run_nginx(conn):
 
 
 @task
-def run_protocol(conn, pid, delay='0'):
+def run_protocol(conn, pid):
     ''' Runs the protocol.'''
 
     authorities = ["Damian", "Tomasz", "Zbyszko",
@@ -70,14 +69,9 @@ def run_protocol(conn, pid, delay='0'):
     for i, address in enumerate(addresses):
         reserved_nodes.append(
             f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
+    reserved_nodes = " ".join(reserved_nodes)
 
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
-    # tmp fix
-    conn.run(f'mkdir -p /tmp/{auth}/chains/a0tnet1/keystore')
-    conn.run(
-        f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
-
-    reserved_nodes = " ".join(reserved_nodes)
 
     conn.run(
         f'/home/ubuntu/testnet1/bin/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')

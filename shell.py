@@ -536,7 +536,7 @@ rs = lambda : run_protocol(7, use_regions(), 't2.micro', False)
 #                                       run_protocol
 #======================================================================================
 
-def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', profiler=False, delay=0):
+def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', delay=0):
     '''Runs the protocol.'''
 
     # testnet limit
@@ -574,7 +574,7 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
     color_print('send data: keys, addresses')
     cmd = 'zip -r data.zip data/'
     call(cmd.split(), stdout=DEVNULL)
-    run_task('send-data', regions, parallel, False, pids)
+    run_task('send-data', regions, parallel)
 
     color_print('send the binary')
     run_task('send-binary', regions, parallel)
