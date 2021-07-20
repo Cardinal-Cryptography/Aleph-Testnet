@@ -9,8 +9,10 @@ from numpy import add
 
 
 @task
-def mkdir(conn):
+def setup(conn):
     conn.run('mkdir -p /home/ubuntu/testnet1/bin')
+    conn.run('DEBIAN_FRONTEND=noninteractive sudo apt update')
+    conn.run('sudo apt install -y dtach')
     conn.run('sudo apt install -y unzip')
 
 
@@ -55,8 +57,6 @@ def run_nginx(conn):
 @task
 def run_protocol(conn, pid, delay='0'):
     ''' Runs the protocol.'''
-    conn.run('sudo apt update')
-    conn.run('sudo apt install -y dtach')
 
     authorities = ["Damian", "Tomasz", "Zbyszko",
                    "Hansu", "Adam", "Matt", "Antoni", "Michal"]
@@ -74,8 +74,8 @@ def run_protocol(conn, pid, delay='0'):
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
     # tmp fix
     conn.run(f'mkdir -p /tmp/{auth}/chains/a0tnet1/keystore')
-    # conn.run(
-    #     f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
+    conn.run(
+        f'mv /tmp/{auth}/chains/testnet1/keystore/* /tmp/{auth}/chains/a0tnet1/keystore')
 
     reserved_nodes = " ".join(reserved_nodes)
 

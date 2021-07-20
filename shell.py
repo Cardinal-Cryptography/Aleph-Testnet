@@ -51,7 +51,7 @@ def run_task_for_ip(task='test', ip_list=[], parallel=False, output=False, pids=
     try:
         if output:
             return check_output(cmd.split())
-        return call(cmd.split())
+        return call(cmd.split(), stdout=DEVNULL)
     except Exception as _:
         print('paramiko troubles')
 
@@ -183,7 +183,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=False
     try:
         if output:
             return check_output(cmd.split())
-        return call(cmd.split())
+        return call(cmd.split(), stdout=DEVNULL)
     except Exception as _:
         print('paramiko troubles')
 
@@ -209,9 +209,9 @@ def run_cmd_in_region(cmd='tail -f ~/go/src/gitlab.com/alephledger/consensus-go/
     return results
 
 def allow_traffic_in_region(ip_list, region_name=default_region()):
-    '''Creates a security group with addresses in given ip_list.'''
+    '''Updates security group with addresses in given ip_list.'''
 
-    update_security_group(region_name, ip_list)
+    return update_security_group(region_name, ip_list=ip_list)
 
 def wait_in_region(target_state, region_name=default_region()):
     '''Waits until all machines in a given region reach a given state.'''
@@ -229,8 +229,11 @@ def wait_in_region(target_state, region_name=default_region()):
     elif target_state == 'open 22':
         for i in instances:
             cmd = f'fab -i key_pairs/aleph.pem -H ubuntu@{i.public_ip_address} test'
-            while call(cmd.split(), stderr=DEVNULL):
+            while call(cmd.split(), stdout=DEVNULL, stderr=DEVNULL):
                 sleep(.1)
+                print('.', end='')
+        print()
+        sleep(5)
     if target_state == 'ssh ready':
         ids = [instance.id for instance in instances]
         initializing = True
@@ -352,7 +355,7 @@ def run_cmd(cmd='ls', regions=use_regions(), parallel=True, output=False):
 
     return exec_for_regions(partial(run_cmd_in_region, cmd, output=output), regions, parallel)
 
-def allow_traffic(ip_list, regions=use_regions(), parallel=True, output=False):
+def allow_traffic(ip_list, regions=use_regions(), parallel=True):
     '''
     Adds ip_list to security group enabling traffic among instances.
     :param list ip_list: list of all allowed ips
@@ -361,7 +364,7 @@ def allow_traffic(ip_list, regions=use_regions(), parallel=True, output=False):
     :param bool output: indicates whether output of task is needed
     '''
 
-    return exec_for_regions(partial(allow_traffic_in_region, ip_list, output=output), regions, parallel)
+    return exec_for_regions(partial(allow_traffic_in_region, ip_list), regions, parallel)
 
 def wait(target_state, regions=use_regions()):
     '''Waits until all machines in all given regions reach a given state.'''
@@ -560,28 +563,26 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', pro
 
     write_addresses(ip_list)
     generate_keys()
-
-    allow_traffic(ip_list)
+    allow_traffic(ip_list, regions)
 
     color_print('waiting till ports are open on machines')
-    sleep(120)
-    # wait('open 22', regions)
+    wait('open 22', regions)
 
-    color_print('mkdir')
-    run_task('mkdir', regions, parallel)
+    color_print('setup')
+    run_task('setup', regions, parallel)
 
     color_print('send data: keys, addresses')
     cmd = 'zip -r data.zip data/'
-    call(cmd.split())
+    call(cmd.split(), stdout=DEVNULL)
     run_task('send-data', regions, parallel, False, pids)
 
     color_print('send the binary')
     run_task('send-binary', regions, parallel)
 
     color_print('start nginx')
-    run_task('run-nginx')
+    run_task('run-nginx', regions, parallel)
 
     color_print(f'establishing the environment took {round(time()-start, 2)}s')
 
     # run the experiment
-    run_task('run-protocol-profiler', regions, parallel, False, pids, time()+delay)
+    run_task('run-protocol', regions, parallel, True, pids, time()+delay)

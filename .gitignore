@@ -9,3 +9,4 @@ key_pairs
 nginx/cert
 
 *.log
+*.zip
