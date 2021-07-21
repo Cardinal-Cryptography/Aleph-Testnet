@@ -1,0 +1,42 @@
+Run these commands:
+
+# install docker and dependencies
+sudo apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common \
+    docker.io
+
+# Add user to docker group. Added user can run docker command without sudo command
+sudo gpasswd -a "${USER}" docker
+
+# ensure daemon starts after boot
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# install docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod a+x /usr/local/bin/docker-compose
+
+# check
+docker --version
+docker-compose --version
+
+# set these ENV vars
+# NOTE: adjust values per node
+echo "AUTHORITY=<AUTHORITY>" >> /etc/environment
+echo "CHAIN_NAME=testnet1" >> /etc/environment
+echo "BASE_PATH=/tmp/<AUTHORITY>" >> /etc/environment
+echo "NODE_KEY_FILE=/tmp/libp2p_secret" >> /etc/environment
+echo "RESERVED_NODES=/ip4/54.93.81.166/tcp/30334/p2p/12D3KooWQg23osB6yU1BELu6VgMPA8u3efE5r2i9vjHWJZgSawWC /ip4/35.158.209.65/tcp/30334/p2p/12D3KooWJJq9KoG5F8NH9TPc3oje5wVFRnufja28A5NAhc2RTV6v /ip4/18.194.249.135/tcp/30334/p2p/12D3KooWCSnVn3828nxKEaPb5wNB93gE8fcqnZNb9R8Y52ZrRgvi /ip4/18.184.39.81/tcp/30334/p2p/12D3KooWPPdmRAjAAREK1DbRkfPjXJFvYJy15eqjWiG65R4aTnF9 /ip4/18.184.48.43/tcp/30334/p2p/12D3KooWDA5xtT4gky7BHJkLdun4HSKeQVq6xNKj7JkM5CSxmNZe /ip4/3.68.80.96/tcp/30334/p2p/12D3KooWAV1mp8DUdZFhU7NXViAw4ad7XY14W3mD9x3CnxFkHXJy" >> /etc/environment
+echo "AWS_ACCESS_KEY_ID=<SETME>" >> /etc/environment
+echo "AWS_SECRET_ACCESS_KEY=<SETME>" >> /etc/environment
+
+# copy docker-compose.yml and config.json files (or their content) to the host
+
+# create volume for the credentials helper container
+docker volume create helper
+
+# to run the services defined in the compose file in the background:
+docker-compose -f docker-compose.yml up -d
