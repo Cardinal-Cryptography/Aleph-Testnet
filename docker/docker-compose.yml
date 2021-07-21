@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+
+  # TODO : push slack notification when updating image
+  # TODO : configure container to ship logs to cloudwatch
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    command: --label-enable --cleanup --interval 60 # 600
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config.json:/config.json
+      - helper:/go/bin
+    environment:
+      - HOME=/
+      - PATH=$PATH:/go/bin
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+  credentials-helper:
+    image: nodrama/credentials-helper:e70f40b
+    container_name: credentials-helper
+    volumes:
+      - helper:/go/bin
+    environment:
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+  aleph-node:
+    image: 436875894086.dkr.ecr.eu-west-1.amazonaws.com/aleph-node:latest
+    entrypoint: ["/bin/sh","-c"]
+    command:
+      - |
+         ./aleph-node purge-chain --chain $CHAIN_NAME --base-path $BASE_PATH -y
+         ./aleph-node --validator --chain $CHAIN_NAME --base-path $BASE_PATH --name $NODE_NAME --node-key-file $NODE_KEY_PATH  --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes $RESERVED_NODES
+    container_name: aleph-node
+    expose:
+      - 9933
+      - 9944
+      - 30334
+    ports:
+      - 9933:9933
+      - 9944:9944
+      - 30334:30334
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    volumes:
+      # NOTE: adjust host path (first one)
+      - /home/$USER/aleph-docker/:/tmp/
+    # restart: on-failure
+
+# NOTE: run `docker volume create helper` to create this volume
+volumes:
+  helper:
+    external: true
