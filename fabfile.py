@@ -29,7 +29,7 @@ def send_data(conn):
 
     conn.put('data.zip', '.')
     conn.run('unzip /home/ubuntu/data.zip')
-    conn.run('mv /home/ubuntu/data/* /tmp')
+    conn.run('cp -r /home/ubuntu/data/* /tmp')
 
 
 @task

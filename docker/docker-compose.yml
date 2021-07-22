@@ -6,7 +6,7 @@ services:
 
   watchtower:
     image: containrrr/watchtower:latest
-    command: --label-enable --cleanup --interval 60 # 600
+    command: --label-enable --cleanup --interval 600
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -48,8 +48,7 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     volumes:
-      # NOTE: adjust host path (first one)
-      - /home/$USER/:/tmp/
+      - /home/$USER/data:/tmp/
     # restart: on-failure
 
 # NOTE: run `docker volume create helper` to create this volume
