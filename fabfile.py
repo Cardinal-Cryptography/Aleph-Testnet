@@ -57,35 +57,26 @@ def run_docker_compose(conn, pid):
             f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
     reserved_nodes = " ".join(reserved_nodes)
 
-    with open('aws_credentials', 'r') as f:
-        (access_key_id, secret_access_key) = [k.strip() for k in f.readlines()]
-
     with open(f'env{pid}', 'a') as f:
         f.write(f'NODE_NAME={auth}\n')
         f.write('CHAIN_NAME=testnet1\n')
         f.write(f'BASE_PATH=/tmp/{auth}\n')
         f.write('NODE_KEY_PATH=/tmp/libp2p_secret\n')
         f.write(f'RESERVED_NODES="{reserved_nodes}"\n')
-        f.write(f'AWS_ACCESS_KEY_ID={access_key_id}\n')
-        f.write(f'AWS_SECRET_ACCESS_KEY={secret_access_key}\n')
     conn.put(f'env{pid}', '.')
     conn.run(f'sudo mv env{pid} /etc/environment')
 
     remove(f'env{pid}')
 
     conn.put('docker/docker-compose.yml', '.')
-    conn.put('docker/config.json', '.')
 
-    conn.run(
-        'AWS_ACCESS_KEY_ID={access_key_id} AWS_SECRET_ACCESS_KEY={secret_access_key} docker volume create helper')
+    conn.run('docker volume create helper')
 
     conn.run(f'export NODE_NAME={auth} &&'
              'export CHAIN_NAME=testnet1 &&'
              f'export BASE_PATH=/tmp/{auth} &&'
              'export NODE_KEY_PATH=/tmp/libp2p_secret &&'
              f'export RESERVED_NODES="{reserved_nodes}" &&'
-             f'export AWS_ACCESS_KEY_ID={access_key_id} &&'
-             f'export AWS_SECRET_ACCESS_KEY={secret_access_key} &&'
              'docker-compose -f docker-compose.yml up -d')
 
 
