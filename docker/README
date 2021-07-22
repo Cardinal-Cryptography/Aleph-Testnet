@@ -25,7 +25,7 @@ docker-compose --version
 
 # set these ENV vars
 # NOTE: adjust values per node
-echo "AUTHORITY=<AUTHORITY>" >> /etc/environment
+echo "NODE_NAME=<AUTHORITY>" >> /etc/environment
 echo "CHAIN_NAME=testnet1" >> /etc/environment
 echo "BASE_PATH=/tmp/<AUTHORITY>" >> /etc/environment
 echo "NODE_KEY_FILE=/tmp/libp2p_secret" >> /etc/environment

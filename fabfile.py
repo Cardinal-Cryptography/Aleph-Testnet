@@ -1,6 +1,8 @@
 '''Routines called by fab. Assumes that all are called from */experiments/aws.'''
 
+from subprocess import call
 from fabric import task
+from os import remove
 
 # ======================================================================================
 #                                   setup
@@ -9,10 +11,15 @@ from fabric import task
 
 @task
 def setup(conn):
-    conn.run('mkdir -p /home/ubuntu/testnet1/bin')
-    conn.run('DEBIAN_FRONTEND=noninteractive sudo apt update')
-    conn.run('sudo apt install -y dtach')
-    conn.run('sudo apt install -y unzip')
+    conn.run('sudo apt update', hide='both')
+    conn.run('sudo apt install -y unzip dtach', hide='both')
+
+
+@task
+def docker_setup(conn):
+    conn.put('docker_setup.sh', '.')
+    conn.run(
+        'dtach -n `mktemp -u /tmp/dtach.XXXX` bash docker_setup.sh', hide='both')
 
 
 @task
@@ -20,15 +27,71 @@ def send_data(conn):
     ''' Sends keys and addresses. '''
     # sends all the keys, refactor to send only the needed one
 
-    conn.put('data.zip', '/home/ubuntu/testnet1/')
-    conn.run('unzip /home/ubuntu/testnet1/data.zip')
+    conn.put('data.zip', '.')
+    conn.run('unzip /home/ubuntu/data.zip')
     conn.run('mv /home/ubuntu/data/* /tmp')
 
 
 @task
+def get_logs(conn, pid):
+    authorities = ["Damian", "Tomasz", "Zbyszko",
+                   "Hansu", "Adam", "Matt", "Antoni", "Michal"]
+    pid = int(pid)
+    auth = authorities[pid]
+    conn.get(f'/home/ubuntu/{auth}-{pid}.log', './')
+
+
+@task
+def run_docker_compose(conn, pid):
+    authorities = ["Damian", "Tomasz", "Zbyszko",
+                   "Hansu", "Adam", "Matt", "Antoni", "Michal"]
+    pid = int(pid)
+    auth = authorities[pid]
+    reserved_nodes = []
+    with open("data/addresses", "r") as f:
+        addresses = [addr.strip() for addr in f.readlines()]
+    with open("data/libp2p2_public_keys", "r") as f:
+        keys = [key.strip() for key in f.readlines()]
+    for i, address in enumerate(addresses):
+        reserved_nodes.append(
+            f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
+    reserved_nodes = " ".join(reserved_nodes)
+
+    with open('aws_credentials', 'r') as f:
+        (access_key_id, secret_access_key) = [k.strip() for k in f.readlines()]
+
+    with open(f'env{pid}', 'a') as f:
+        f.write(f'NODE_NAME={auth}\n')
+        f.write('CHAIN_NAME=testnet1\n')
+        f.write(f'BASE_PATH=/tmp/{auth}\n')
+        f.write('NODE_KEY_PATH=/tmp/libp2p_secret\n')
+        f.write(f'RESERVED_NODES="{reserved_nodes}"\n')
+        f.write(f'AWS_ACCESS_KEY_ID={access_key_id}\n')
+        f.write(f'AWS_SECRET_ACCESS_KEY={secret_access_key}\n')
+    conn.put(f'env{pid}', '.')
+    conn.run(f'sudo mv env{pid} /etc/environment')
+
+    remove(f'env{pid}')
+
+    conn.put('docker/docker-compose.yml', '.')
+    conn.put('docker/config.json', '.')
+
+    conn.run(
+        'AWS_ACCESS_KEY_ID={access_key_id} AWS_SECRET_ACCESS_KEY={secret_access_key} docker volume create helper')
+
+    conn.run(f'export NODE_NAME={auth} &&'
+             'export CHAIN_NAME=testnet1 &&'
+             f'export BASE_PATH=/tmp/{auth} &&'
+             'export NODE_KEY_PATH=/tmp/libp2p_secret &&'
+             f'export RESERVED_NODES="{reserved_nodes}" &&'
+             f'export AWS_ACCESS_KEY_ID={access_key_id} &&'
+             f'export AWS_SECRET_ACCESS_KEY={secret_access_key} &&'
+             'docker-compose -f docker-compose.yml up -d')
+
+
+@task
 def send_binary(conn):
-    path = '/home/ubuntu/testnet1/bin/'
-    conn.put('bin/aleph-node', path)
+    conn.put('bin/aleph-node', '.')
 
 # ======================================================================================
 #                                       nginx
@@ -37,12 +100,12 @@ def send_binary(conn):
 
 @task
 def run_nginx(conn):
-    conn.run('sudo apt install -y nginx')
-    conn.put('nginx/default', '/home/ubuntu/')
+    conn.run('sudo apt install -y nginx', hide='both')
+    conn.put('nginx/default', '.')
     conn.run('sudo mv /home/ubuntu/default /etc/nginx/sites-available/')
-    conn.put('nginx/cert/self-signed.crt', '/home/ubuntu/')
+    conn.put('nginx/cert/self-signed.crt', '.')
     conn.run('sudo mv /home/ubuntu/self-signed.crt /etc/nginx/')
-    conn.put('nginx/cert/self-signed.key', '/home/ubuntu/')
+    conn.put('nginx/cert/self-signed.key', '.')
     conn.run('sudo mv /home/ubuntu/self-signed.key /etc/nginx/')
 
     conn.run('sudo service nginx restart')
@@ -54,7 +117,7 @@ def run_nginx(conn):
 
 
 @task
-def run_protocol(conn, pid):
+def run_protocol(conn,  pid):
     ''' Runs the protocol.'''
 
     authorities = ["Damian", "Tomasz", "Zbyszko",
@@ -74,30 +137,32 @@ def run_protocol(conn, pid):
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
 
     conn.run(
-        f'/home/ubuntu/testnet1/bin/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
-    cmd = f'/home/ubuntu/testnet1/bin/aleph-node \
-                --validator \
-                --chain testnet1 \
-                --base-path /tmp/{auth} \
-                --name {auth} \
-                --rpc-port 9933 \
-                --ws-port 9944 \
-                --port 30334 \
-                --execution Native \
-                --no-prometheus \
-                --no-telemetry \
-                --reserved-only \
-                --reserved-nodes {reserved_nodes} \
-                --rpc-cors all \
-                --rpc-methods Safe \
-                --node-key-file /tmp/{auth}/libp2p_secret \
-                2> {auth}-{pid}.log'
+        f'/home/ubuntu/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
+    cmd = f'/home/ubuntu/aleph-node '\
+        '--validator '\
+        '--chain testnet1 '\
+        f'--base-path /tmp/{auth} '\
+        f'--name {auth} '\
+        '--rpc-port 9933 '\
+        '--ws-port 9944 '\
+        '--port 30334 '\
+        '--execution Native '\
+        '--no-prometheus '\
+        '--no-telemetry '\
+        '--reserved-only '\
+        f'--reserved-nodes {reserved_nodes} '\
+        '--rpc-cors all '\
+        '--rpc-methods Safe '\
+        f'--node-key-file /tmp/{auth}/libp2p_secret '\
+        '-lafa=debug '\
+        f'2> {auth}-{pid}.log'
+
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
-@task
+@ task
 def stop_world(conn):
     ''' Kills the committee member.'''
 
@@ -108,7 +173,7 @@ def stop_world(conn):
 # ======================================================================================
 
 
-@task
+@ task
 def test(conn):
     ''' Tests if connection is ready '''
 

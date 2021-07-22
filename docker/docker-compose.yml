@@ -17,9 +17,8 @@ services:
       - PATH=$PATH:/go/bin
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-
   credentials-helper:
-    image: nodrama/credentials-helper:e70f40b
+    image: nodrama/credentials-helper:latest
     container_name: credentials-helper
     volumes:
       - helper:/go/bin
@@ -29,6 +28,9 @@ services:
 
   aleph-node:
     image: 436875894086.dkr.ecr.eu-west-1.amazonaws.com/aleph-node:latest
+    environment:
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     entrypoint: ["/bin/sh","-c"]
     command:
       - |
@@ -47,7 +49,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
     volumes:
       # NOTE: adjust host path (first one)
-      - /home/$USER/aleph-docker/:/tmp/
+      - /home/$USER/:/tmp/
     # restart: on-failure
 
 # NOTE: run `docker volume create helper` to create this volume

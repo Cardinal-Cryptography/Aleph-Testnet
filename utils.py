@@ -78,7 +78,6 @@ def create_security_group(region_name, security_group_name='alephB', ip_list=[])
 
 
 def update_security_group(region_name, security_group_name='alephB', ip_list=[]):
-    print(region_name, security_group_name, ip_list)
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
 
     ec2 = boto3.resource('ec2', region_name)

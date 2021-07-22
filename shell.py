@@ -153,7 +153,7 @@ def instances_state_in_region(region_name=default_region()):
 
     return states
 
-def run_task_in_region(task='test', region_name=default_region(), parallel=False, output=False, pids=None, delay=0):
+def run_task_in_region(task='test', region_name=default_region(), parallel=False, output=False, pids=None):
     '''
     Runs a task from fabfile.py on all instances in a given region.
     :param string task: name of a task defined in fabfile.py
@@ -171,11 +171,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=False
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
-            if not delay:
-                cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + hosts + ' :::+ ' + ' '.join(pids)
-            else:
-                sleep = round(delay - time(), 0)
-                cmd = pcmd + ' {1} ' + task + ' --pid={2} --delay={3} ::: ' + hosts + ' :::+ ' + ' '.join(pids) + ' :::+ ' + ' '.join([str(sleep)] * len(pids))
+            cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + hosts + ' :::+ ' + ' '.join(pids)
     else:
         hosts = ",".join(["ubuntu@"+ip for ip in ip_list])
         cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task}'
@@ -233,7 +229,7 @@ def wait_in_region(target_state, region_name=default_region()):
                 sleep(.1)
                 print('.', end='')
         print()
-        sleep(5)
+        sleep(10)
     if target_state == 'ssh ready':
         ids = [instance.id for instance in instances]
         initializing = True
@@ -257,11 +253,24 @@ def wait_in_region(target_state, region_name=default_region()):
                 sleep(5)
         print()
 
+def wait_install_in_region(type, region_name=default_region()):
+    '''Checks if installation has finished on all instances in a given region.'''
+
+    results = []
+    cmd = f"tail -1 {type}_setup.log"
+    results = run_cmd_in_region(cmd, region_name, output=True)
+    for result in results:
+        if len(result) < 4 or result[:4] != b'done':
+            return False
+
+    print(f'installation in {region_name} finished')
+    return True
+
 #======================================================================================
 #                              routines for all regions
 #======================================================================================
 
-def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None, delay=0):
+def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None):
     '''A helper function for running routines in all regions.'''
 
     results = []
@@ -270,7 +279,7 @@ def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None, dela
             if pids is None:
                 results = Parallel(n_jobs=N_JOBS)(delayed(func)(region_name) for region_name in regions)
             else:
-                results = Parallel(n_jobs=N_JOBS)(delayed(func)(region_name, pids=pids[region_name], delay=delay) for region_name in regions)
+                results = Parallel(n_jobs=N_JOBS)(delayed(func)(region_name, pids=pids[region_name]) for region_name in regions)
 
         except Exception as e:
             print('error during collecting results', type(e), e)
@@ -333,7 +342,7 @@ def instances_state(regions=use_regions(), parallel=True):
 
     return exec_for_regions(instances_state_in_region, regions, parallel)
 
-def run_task(task='test', regions=use_regions(), parallel=True, output=False, pids=None, delay=0):
+def run_task(task='test', regions=use_regions(), parallel=True, output=False, pids=None):
     '''
     Runs a task from fabfile.py on all instances in all given regions.
     :param string task: name of a task defined in fabfile.py
@@ -342,7 +351,7 @@ def run_task(task='test', regions=use_regions(), parallel=True, output=False, pi
     :param bool output: indicates whether output of task is needed
     '''
 
-    return exec_for_regions(partial(run_task_in_region, task, parallel=parallel, output=output), regions, parallel, pids, delay)
+    return exec_for_regions(partial(run_task_in_region, task, parallel=parallel, output=output), regions, parallel, pids)
 
 def run_cmd(cmd='ls', regions=use_regions(), parallel=True, output=False):
     '''
@@ -370,6 +379,16 @@ def wait(target_state, regions=use_regions()):
     '''Waits until all machines in all given regions reach a given state.'''
 
     exec_for_regions(partial(wait_in_region, target_state), regions)
+
+def wait_install(type, regions=use_regions()):
+    '''Waits till installation finishes in all given regions.'''
+
+    wait_for_regions = regions.copy()
+    while wait_for_regions:
+        results = Parallel(n_jobs=N_JOBS)(delayed(wait_install_in_region)(type, r) for r in wait_for_regions)
+
+        wait_for_regions = [r for i,r in enumerate(wait_for_regions) if not results[i]]
+        sleep(1)
 
 #======================================================================================
 #                               aggregates
@@ -530,15 +549,13 @@ cm = run_cmd
 tir = terminate_instances_in_region
 ti = terminate_instances
 
-rs = lambda : run_protocol(7, use_regions(), 't2.micro', False)
+rs = lambda : run_protocol(7, use_regions(), 't2.micro')
 
 #======================================================================================
-#                                       run_protocol
+#                                      dispatch
 #======================================================================================
 
-def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', delay=0):
-    '''Runs the protocol.'''
-
+def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
     # testnet limit
     assert n_parties <= 8
 
@@ -576,13 +593,36 @@ def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', del
     call(cmd.split(), stdout=DEVNULL)
     run_task('send-data', regions, parallel)
 
-    color_print('send the binary')
-    run_task('send-binary', regions, parallel)
-
     color_print('start nginx')
     run_task('run-nginx', regions, parallel)
 
     color_print(f'establishing the environment took {round(time()-start, 2)}s')
 
+    return pids
+
+def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro'):
+    '''Runs the protocol.'''
+
+    pids = setup(n_parties, regions, instance_type)
+
+    parallel = n_parties > 1
+
+    color_print('send the binary')
+    run_task('send-binary', regions, parallel)
+
     # run the experiment
-    run_task('run-protocol', regions, parallel, True, pids, time()+delay)
+    run_task('run-protocol', regions, parallel, False, pids)
+
+def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
+    pids = setup(n_parties, regions, instance_type)
+
+    parallel = n_parties > 1
+
+    color_print('install docker and dependencies')
+    run_task('docker-setup', regions, parallel)
+
+    color_print('wait till installation finishes')
+    wait_install('docker', regions)
+
+    color_print('run docker compose')
+    run_task('run-docker-compose', regions, parallel, False, pids)
