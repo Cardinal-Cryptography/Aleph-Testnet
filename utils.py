@@ -62,17 +62,6 @@ def create_security_group(region_name, security_group_name='alephB', ip_list=[])
             },
         ]
     )
-    # authorize outgoing connections with all protocols in VPC
-    sg.authorize_egress(
-        IpPermissions=[
-            {
-                'FromPort': 0,
-                'IpProtocol': '-1',
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                'ToPort': 0,
-            }
-        ]
-    )
 
     return sg
 
