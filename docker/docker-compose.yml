@@ -1,34 +1,38 @@
 version: "3.7"
 services:
 
-  # TODO : push slack notification when updating image
-  # TODO : configure container to ship logs to cloudwatch
-
   watchtower:
     image: containrrr/watchtower:latest
-    command: --label-enable --cleanup --interval 600 # 600
+    command: --label-enable --cleanup --interval 600 # checks for new image every 10 minutes
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_NOTIFICATIONS=slack
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=$SLACK_HOOK_URL
+      - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=Devnet-Watchtower-Service
 
   aleph-node:
     image: public.ecr.aws/x2t8a1o3/aleph-node:latest
     entrypoint: ["/bin/sh","-c"]
+    # NOTE : this container runs without any sandboxing, pretty much like a native host process
+    privileged: true
+    network_mode: host
     command:
       - |
          ./aleph-node purge-chain --chain $CHAIN_NAME --base-path $BASE_PATH -y
          ./aleph-node --validator --chain $CHAIN_NAME --base-path $BASE_PATH --name $NODE_NAME --node-key-file $NODE_KEY_PATH  --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes $RESERVED_NODES
     container_name: aleph-node
-    expose:
-      - 9933
-      - 9944
-      - 30334
-    ports:
-      - 9933:9933
-      - 9944:9944
-      - 30334:30334
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     volumes:
-      - /home/$USER/data/:/tmp/
+      - /tmp/:/tmp/
+    environment:
+      - RUST_LOG=info
+    logging:
+       driver: "awslogs"
+       options:
+          awslogs-region: $AWS_REGION
+          awslogs-group: "devnet"
+          awslogs-stream: $NODE_NAME
     restart: on-failure
