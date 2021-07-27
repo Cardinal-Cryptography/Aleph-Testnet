@@ -22,5 +22,5 @@ fn main() {
         .map(|k| PeerId::from_public_key(Keypair::Ed25519(k).public()).to_string())
         .collect::<Vec<_>>()
         .join('\n'.to_string().as_str());
-    std::fs::write("data/libp2p2_public_keys", publics).expect("should succeed");
+    std::fs::write("data/libp2p_public_keys", publics).expect("should succeed");
 }

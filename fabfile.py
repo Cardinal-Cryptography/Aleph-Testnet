@@ -12,7 +12,7 @@ from os import remove
 @task
 def setup(conn):
     conn.run('sudo apt update', hide='both')
-    conn.run('sudo apt install -y unzip dtach', hide='both')
+    conn.run('sudo apt install -y zip unzip dtach', hide='both')
 
 
 @task
@@ -38,7 +38,8 @@ def get_logs(conn, pid):
                    "Hansu", "Adam", "Matt", "Antoni", "Michal"]
     pid = int(pid)
     auth = authorities[pid]
-    conn.get(f'/home/ubuntu/{auth}-{pid}.log', './')
+    conn.run(f'zip {auth}.log.zip /home/ubuntu/{auth}-{pid}.log')
+    conn.get(f'/home/ubuntu/{auth}.log.zip', './')
 
 
 @task
