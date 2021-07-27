@@ -91,7 +91,8 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
 
     ec2 = boto3.resource('ec2', region_name)
     instances = ec2.create_instances(ImageId=image_id,
-                                     MinCount=n_parties, MaxCount=n_parties,
+                                     MinCount=n_parties,
+                                     MaxCount=n_parties,
                                      InstanceType=instance_type,
                                      BlockDeviceMappings=[{
                                          'DeviceName': '/dev/xvda',
@@ -103,6 +104,9 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
                                      }, ],
                                      KeyName=key_name,
                                      Monitoring={'Enabled': False},
+                                     IamInstanceProfile={
+                                           'Arn': 'arn:aws:iam::436875894086:instance-profile/EC2DockerCloudwatchLogs'
+                                     },
                                      SecurityGroupIds=[security_group_id])
 
     return instances
