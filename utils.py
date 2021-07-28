@@ -236,15 +236,6 @@ def read_aws_keys():
 def generate_keys(n_members):
     ''' Generate signing keys for the committee.'''
 
-    cmd = 'rm /tmp/n_members'
-    call(cmd.split())
-
-    cmd = 'touch /tmp/n_members'
-    call(cmd.split())
-
-    cmd = f'echo {n_members} > /tmp/n_members'
-    call(cmd.split())
-
     cmd = './bin/aleph-node dev-keys --base-path data --chain testnet1 --key-types aura alp0'
     call(cmd.split())
 

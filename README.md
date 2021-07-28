@@ -7,7 +7,6 @@ Aleph Zero Blockchain python scripts for running TestNet and DevNet.
 - Create an account on AWS, set up credentials, and a default region as described [here](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html#configuration).
 - Put keys for ssh in key_pairs (both the private key e.g. `aleph.pem` and its fingerprint (`aleph.fingerprint`))
 - Put SSL certificates in the nginx/cert directory (`self-signed.crt` and `self-signed.key`)
-- Create empty directory data (`mkdir data`)
 - Compile key utility (`cd p2p_keys && cargo build --release`)
 - Make sure you have the aleph node binary inside a bin directory (needed for committee key generation step, `cp <...>/aleph-node/target/release/aleph-node bin/`)
 - Make sure you have copied `authorities_keys` into /tmp/ directory
