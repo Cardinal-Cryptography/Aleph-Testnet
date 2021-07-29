@@ -8,6 +8,8 @@ keys
 key_pairs
 nginx/cert
 aws_credentials
+.ipynb_checkpoints
 
 *.log
 *.zip
+*.ipynb

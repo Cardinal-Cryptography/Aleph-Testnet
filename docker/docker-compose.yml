@@ -7,10 +7,10 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_NOTIFICATIONS=slack
-      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=$SLACK_HOOK_URL
-      - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=Devnet-Watchtower-Service
+    # environment:
+    #   - WATCHTOWER_NOTIFICATIONS=slack
+    #   - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=$SLACK_HOOK_URL
+    #   - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=Devnet-Watchtower-Service
 
   aleph-node:
     image: public.ecr.aws/x2t8a1o3/aleph-node:latest
@@ -26,7 +26,7 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     volumes:
-      - /tmp/:/tmp/
+      - ./data/:/tmp/
     environment:
       - RUST_LOG=info
     logging:

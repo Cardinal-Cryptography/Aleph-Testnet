@@ -465,7 +465,7 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
     color_print('waiting for transition from pending to running')
     wait('running', regions)
 
-    color_print('generating keys&addresses files')
+    color_print('generating keys & addresses files')
     pids, ip2pid, ip_list, c = {}, {}, [], 0
     for r in regions:
         ipl = instances_ip_in_region(r)
@@ -475,7 +475,7 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
         ip_list.extend(ipl)
 
     write_addresses(ip_list)
-    generate_keys()
+    generate_keys(n_parties)
     allow_traffic(ip_list, regions)
 
     color_print('waiting till ports are open on machines')
