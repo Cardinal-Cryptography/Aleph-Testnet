@@ -33,6 +33,24 @@ def send_data(conn):
 
 
 @task
+def send_compose_config(conn):
+    ''' Sends docker compose config file. '''
+    conn.put('docker/docker-compose.yml', '.')
+
+
+@task
+def stop_services(conn):
+    ''' Stops services defined in the compose file. '''
+    conn.run('docker-compose -f docker-compose.yml down')
+
+
+@task
+def restart_services(conn):
+    ''' Restarts services defined in the compose file. '''
+    conn.run('docker-compose -f docker-compose.yml up -d')
+
+
+@task
 def get_logs(conn, pid):
     authorities = ["Damian", "Tomasz", "Zbyszko",
                    "Hansu", "Adam", "Matt", "Antoni", "Michal"]

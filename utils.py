@@ -233,7 +233,7 @@ def read_aws_keys():
         return access_key_id, secret_access_key
 
 
-def generate_keys(n_members):
+def generate_keys():
     ''' Generate signing keys for the committee.'''
 
     cmd = './bin/aleph-node dev-keys --base-path data --chain testnet1 --key-types aura alp0'
