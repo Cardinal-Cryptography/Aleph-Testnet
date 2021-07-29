@@ -49,6 +49,11 @@ def restart_services(conn):
     ''' Restarts services defined in the compose file. '''
     conn.run('docker-compose -f docker-compose.yml up -d')
 
+@task
+def update_node_image(conn):
+    ''' Pulls a most recent version of the image. '''
+    conn.run('docker pull public.ecr.aws/x2t8a1o3/aleph-node:latest')
+
 
 @task
 def get_logs(conn, pid):
