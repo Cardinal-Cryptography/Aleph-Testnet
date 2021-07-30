@@ -475,7 +475,7 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
         ip_list.extend(ipl)
 
     write_addresses(ip_list)
-    generate_keys(n_parties)
+    generate_keys()
     allow_traffic(ip_list, regions)
 
     color_print('waiting till ports are open on machines')
