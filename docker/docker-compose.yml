@@ -28,7 +28,7 @@ services:
     logging:
        driver: "awslogs"
        options:
-          awslogs-region: eu-west-1 # NOTE: explicitely store logs from all instances in one region, where they can be shipped to ElasticSearch and Kibana
+          awslogs-region: eu-west-1 # NOTE: we explicitely store logs from all instances in one region, where they can be shipped to ElasticSearch & vizualized in Kibana
           awslogs-group: "devnet"
           awslogs-stream: $NODE_NAME
-    restart: on-failure(3)
+    restart: on-failure(1)
