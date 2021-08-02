@@ -88,7 +88,6 @@ def run_docker_compose(conn, pid):
         f.write(f'BASE_PATH=/tmp/{auth}\n')
         f.write(f'NODE_KEY_PATH=/tmp/{auth}/libp2p_secret\n')
         f.write(f'RESERVED_NODES="{reserved_nodes}"\n')
-        f.write('AWS_REGION=eu-west-1\n')
     conn.put(f'env{pid}', '.')
     conn.run(f'sudo mv env{pid} /etc/environment')
 
@@ -101,7 +100,6 @@ def run_docker_compose(conn, pid):
              f'export BASE_PATH=/tmp/{auth} &&'
              f'export NODE_KEY_PATH=/tmp/{auth}/libp2p_secret &&'
              f'export RESERVED_NODES="{reserved_nodes}" &&'
-             'export AWS_REGION=eu-west-1 &&'
              f'docker-compose -f docker-compose.yml up -d')
 
 
