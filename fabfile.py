@@ -49,6 +49,7 @@ def restart_services(conn):
     ''' Restarts services defined in the compose file. '''
     conn.run('docker-compose -f docker-compose.yml up -d')
 
+
 @task
 def update_node_image(conn):
     ''' Pulls a most recent version of the image. '''
@@ -74,7 +75,7 @@ def run_docker_compose(conn, pid):
     reserved_nodes = []
     with open("data/addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
-    with open("data/libp2p2_public_keys", "r") as f:
+    with open("data/libp2p_public_keys", "r") as f:
         keys = [key.strip() for key in f.readlines()]
     for i, address in enumerate(addresses):
         reserved_nodes.append(
@@ -142,7 +143,7 @@ def run_protocol(conn,  pid):
     reserved_nodes = []
     with open("data/addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
-    with open("data/libp2p2_public_keys", "r") as f:
+    with open("data/libp2p_public_keys", "r") as f:
         keys = [key.strip() for key in f.readlines()]
     for i, address in enumerate(addresses):
         reserved_nodes.append(

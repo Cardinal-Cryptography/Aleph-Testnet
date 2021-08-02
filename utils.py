@@ -233,8 +233,11 @@ def read_aws_keys():
         return access_key_id, secret_access_key
 
 
-def generate_keys():
+def generate_keys(n_parties):
     ''' Generate signing keys for the committee.'''
+
+    with open('data/n_members', 'w') as f:
+        f.write(f'{n_parties}')
 
     cmd = './bin/aleph-node dev-keys --base-path data --chain testnet1 --key-types aura alp0'
     call(cmd.split())

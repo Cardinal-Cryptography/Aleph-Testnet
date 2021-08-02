@@ -105,7 +105,7 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
                                      KeyName=key_name,
                                      Monitoring={'Enabled': False},
                                      IamInstanceProfile={
-                                           'Arn': 'arn:aws:iam::436875894086:instance-profile/EC2DockerCloudwatchLogs'
+                                         'Arn': 'arn:aws:iam::436875894086:instance-profile/EC2DockerCloudwatchLogs'
                                      },
                                      SecurityGroupIds=[security_group_id])
 
@@ -475,7 +475,7 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
         ip_list.extend(ipl)
 
     write_addresses(ip_list)
-    generate_keys()
+    generate_keys(n_parties)
     allow_traffic(ip_list, regions)
 
     color_print('waiting till ports are open on machines')

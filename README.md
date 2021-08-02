@@ -10,7 +10,7 @@ Aleph Zero Blockchain python scripts for running TestNet and DevNet.
 - Compile key utility (`cd p2p_keys && cargo build --release`)
 - Make sure you have the aleph node binary inside a bin directory (needed for committee key generation step, `cp <...>/aleph-node/target/release/aleph-node bin/`)
 - Make sure you have copied `authorities_keys` into /tmp/ directory
-- Install packages needed for orchestrating experiments: GNU parallel, fabric, zip, unzip and Python 3 packages: fabric, boto3, ipython, tqdm, matplotlib.
+- Install packages needed for orchestrating experiments: GNU parallel, fabric, zip, unzip and Python 3 packages: fabric, boto3, ipython, tqdm, matplotlib, joblib.
 - Then, run `ipython -i shell.py`. This opens a shell with procedures orchestrating experiments.
   The main procedures are `run_protocol(n_processes, regions, instance_type)` and
   `run_devnet(n_processes, regions, instance_type)` that run `n_processes` spread
