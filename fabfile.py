@@ -130,14 +130,16 @@ def run_nginx(conn):
 # ======================================================================================
 
 
+def pid_to_auth(pid):
+    return ["Damian", "Tomasz", "Zbyszko", "Hansu",
+            "Adam", "Matt", "Antoni", "Michal"][int(pid)]
+
+
 @task
 def run_protocol(conn,  pid):
     ''' Runs the protocol.'''
 
-    authorities = ["Damian", "Tomasz", "Zbyszko",
-                   "Hansu", "Adam", "Matt", "Antoni", "Michal"]
-    pid = int(pid)
-    auth = authorities[pid]
+    auth = pid_to_auth(pid)
     reserved_nodes = []
     with open("data/addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
@@ -150,8 +152,6 @@ def run_protocol(conn,  pid):
 
     conn.run(f'echo {len(addresses)} > /tmp/n_members')
 
-    conn.run(
-        f'/home/ubuntu/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
     cmd = f'/home/ubuntu/aleph-node '\
         '--validator '\
         '--chain testnet1 '\
@@ -169,11 +169,37 @@ def run_protocol(conn,  pid):
         '--rpc-methods Safe '\
         f'--node-key-file /tmp/{auth}/libp2p_secret '\
         '-lafa=debug '\
+        '--session-period 500 ' \
+        '--millisecs-per-block 1000 ' \
+        '--pruning 432000 ' \
+        '--unsafe-pruning ' \
         f'2> {auth}-{pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
+    dispatch(conn)
+
+
+@task
+def purge(conn, pid):
+    auth = pid_to_auth(pid)
+    conn.run(
+        f'/home/ubuntu/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
+
+
+@task
+def dispatch(conn):
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
+
+
+N_REVERT = 10000
+
+
+@task
+def revert(conn, pid):
+    auth = pid_to_auth(pid)
+    conn.run(
+        f'/home/ubuntu/aleph-node revert --base-path /tmp/{auth} --chain testnet1 {N_REVERT}')
 
 
 @ task

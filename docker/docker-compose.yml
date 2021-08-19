@@ -17,7 +17,7 @@ services:
     command:
       - |
          ./aleph-node purge-chain --chain $CHAIN_NAME --base-path $BASE_PATH -y
-         export SESSION_PERIOD=50 && export MILLISECS_PER_BLOCK=1000 && ./aleph-node --validator --chain $CHAIN_NAME --base-path $BASE_PATH --name $NODE_NAME --node-key-file $NODE_KEY_PATH  --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes $RESERVED_NODES -lafa=debug -lAlephBFT=debug
+         ./aleph-node --validator --chain $CHAIN_NAME --base-path $BASE_PATH --name $NODE_NAME --node-key-file $NODE_KEY_PATH  --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes $RESERVED_NODES -lafa=debug -lAlephBFT=debug --pruning 432000 --unsafe-pruning --session_period 500 --millsecs-per-block 1000
     container_name: aleph-node
     labels:
       - "com.centurylinklabs.watchtower.enable=true"

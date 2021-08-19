@@ -166,7 +166,7 @@ def instances_state_in_region(region_name=default_region()):
     return states
 
 
-def run_task_in_region(task='test', region_name=default_region(), parallel=False, output=False, pids=None):
+def run_task_in_region(task='test', region_name=default_region(), parallel=True, output=False, pids=None):
     '''
     Runs a task from fabfile.py on all instances in a given region.
     :param string task: name of a task defined in fabfile.py
