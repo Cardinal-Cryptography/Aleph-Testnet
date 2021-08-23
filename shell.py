@@ -95,10 +95,10 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
                                      MaxCount=n_parties,
                                      InstanceType=instance_type,
                                      BlockDeviceMappings=[{
-                                         'DeviceName': '/dev/xvda',
+                                         'DeviceName': '/dev/sda1',
                                          'Ebs': {
                                              'DeleteOnTermination': True,
-                                             'VolumeSize': 8,
+                                             'VolumeSize': 16,
                                              'VolumeType': 'gp2'
                                          },
                                      }, ],
@@ -138,6 +138,11 @@ def all_instances_in_region(region_name=default_region(), states=['running', 'pe
 
 def terminate_instances_in_region(region_name=default_region()):
     '''Terminates all running instances in a given regions.'''
+
+    ans = input(
+        f"Do you want to terminate all instances in region {region_name} [y]/n?")
+    if ans not in ['', 'y']:
+        return
 
     print(region_name, 'terminating instances')
     for instance in all_instances_in_region(region_name):

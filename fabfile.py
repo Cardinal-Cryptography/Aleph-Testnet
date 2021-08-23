@@ -169,10 +169,9 @@ def run_protocol(conn,  pid):
         '--rpc-methods Safe '\
         f'--node-key-file /tmp/{auth}/libp2p_secret '\
         '-lafa=debug '\
+        '-ltrace '\
         '--session-period 500 ' \
         '--millisecs-per-block 1000 ' \
-        '--pruning 432000 ' \
-        '--unsafe-pruning ' \
         f'2> {auth}-{pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
