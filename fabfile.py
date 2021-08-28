@@ -72,22 +72,22 @@ def run_docker_compose(conn, pid):
                    "Hansu", "Adam", "Matt", "Antoni", "Michal"]
     pid = int(pid)
     auth = authorities[pid]
-    reserved_nodes = []
+    bootnodes = []
     with open("data/addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
     with open("data/libp2p_public_keys", "r") as f:
         keys = [key.strip() for key in f.readlines()]
     for i, address in enumerate(addresses):
-        reserved_nodes.append(
+        bootnodes.append(
             f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
-    reserved_nodes = " ".join(reserved_nodes)
+    bootnodes = " ".join(bootnodes)
 
     with open(f'env{pid}', 'a') as f:
         f.write(f'NODE_NAME={auth}\n')
         f.write('CHAIN_NAME=testnet1\n')
         f.write(f'BASE_PATH=/tmp/{auth}\n')
         f.write(f'NODE_KEY_PATH=/tmp/{auth}/libp2p_secret\n')
-        f.write(f'RESERVED_NODES="{reserved_nodes}"\n')
+        f.write(f'BOOTNODES="{bootnodes}"\n')
     conn.put(f'env{pid}', '.')
     conn.run(f'sudo mv env{pid} /etc/environment')
 
@@ -99,8 +99,8 @@ def run_docker_compose(conn, pid):
              'export CHAIN_NAME=testnet1 &&'
              f'export BASE_PATH=/tmp/{auth} &&'
              f'export NODE_KEY_PATH=/tmp/{auth}/libp2p_secret &&'
-             f'export RESERVED_NODES="{reserved_nodes}" &&'
-             f'docker-compose -f docker-compose.yml up -d')
+             f'export BOOTNODES="{bootnodes}" &&'
+             'docker-compose -f docker-compose.yml up -d')
 
 
 @task

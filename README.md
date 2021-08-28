@@ -21,7 +21,7 @@ Aleph Zero Blockchain python scripts for running TestNet and DevNet.
 - `run_cmd(shell_cmd, regions)` dispatches the `shell_cmd` on all machines in given regions.
 - To terminate instances run `terminate_instances(regions)`.
 
-# TODOS
+# TODOs
 
 - skip step copying data/ to /tmp on the instance (it is not needed as we mount data from the host as tmp in the container)
 - dockerize nginx ([nginx-proxy](https://github.com/nginx-proxy/nginx-proxy))
