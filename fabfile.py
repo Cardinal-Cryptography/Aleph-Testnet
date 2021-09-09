@@ -163,20 +163,16 @@ def run_protocol(conn,  pid):
         '--execution Native '\
         '--no-prometheus '\
         '--no-telemetry '\
-        '--reserved-only '\
         f'--reserved-nodes {reserved_nodes} '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
         f'--node-key-file /tmp/{auth}/libp2p_secret '\
-        '-lafa=debug '\
-        '-ltrace '\
-        '--session-period 500 ' \
-        '--millisecs-per-block 1000 ' \
+        '--session-period 500' \
+        '--millisecs-per-block 1000' \
         f'2> {auth}-{pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
-    dispatch(conn)
 
 
 @task
@@ -191,20 +187,9 @@ def dispatch(conn):
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
-N_REVERT = 10000
-
-
 @task
-def revert(conn, pid):
-    auth = pid_to_auth(pid)
-    conn.run(
-        f'/home/ubuntu/aleph-node revert --base-path /tmp/{auth} --chain testnet1 {N_REVERT}')
-
-
-@ task
 def stop_world(conn):
     ''' Kills the committee member.'''
-
     conn.run('killall -9 aleph-node')
 
 # ======================================================================================

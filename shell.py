@@ -38,16 +38,15 @@ def run_task_for_ip(task='test', ip_list=[], parallel=False, output=False, pids=
 
     if parallel:
         hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
-        cmd = 'parallel fab -i key_pairs/aleph.pem -H {} '+task+' ::: '+hosts
+        pcmd = 'parallel fab -i key_pairs/aleph.pem -H'
+        if pids is None:
+            cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
+        else:
+            cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + \
+                hosts + ' :::+ ' + ' '.join(pids)
     else:
         hosts = ",".join(["ubuntu@"+ip for ip in ip_list])
-        if pids is None:
-            cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task}'
-        else:
-            if len(ip_list) > 1:
-                print('works only for one ip, aborting')
-                return
-            cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task} --pid={pids[0]}'
+        cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task}'
 
     try:
         if output:
@@ -86,7 +85,8 @@ def latency_in_region(region_name):
     return latency
 
 
-def create_instances(region_name, image_id, n_parties, instance_type, key_name, security_group_id):
+def create_instances(region_name, image_id, n_parties, instance_type, key_name,
+                     security_group_id, volume_size):
     ''' Creates instances. '''
 
     ec2 = boto3.resource('ec2', region_name)
@@ -98,7 +98,7 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
                                          'DeviceName': '/dev/sda1',
                                          'Ebs': {
                                              'DeleteOnTermination': True,
-                                             'VolumeSize': 16,
+                                             'VolumeSize': volume_size,
                                              'VolumeType': 'gp2'
                                          },
                                      }, ],
@@ -112,7 +112,8 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name, 
     return instances
 
 
-def launch_new_instances_in_region(n_parties=1, region_name=default_region(), instance_type='t2.micro'):
+def launch_new_instances_in_region(n_parties=1, region_name=default_region(),
+                                   instance_type='t2.micro', volume_size='8'):
     '''Launches n_parties in a given region.'''
 
     print('launching instances in', region_name)
@@ -121,7 +122,8 @@ def launch_new_instances_in_region(n_parties=1, region_name=default_region(), in
     security_group_id = security_group_id_by_region(region_name)
     image_id = image_id_in_region(region_name, 'ubuntu')
 
-    return create_instances(region_name, image_id, n_parties, instance_type, 'aleph', security_group_id)
+    return create_instances(region_name, image_id, n_parties, instance_type, 'aleph',
+                            security_group_id, volume_size)
 
 
 def all_instances_in_region(region_name=default_region(), states=['running', 'pending']):
@@ -322,7 +324,7 @@ def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None):
     return results
 
 
-def launch_new_instances(nppr, instance_type='t2.micro'):
+def launch_new_instances(nppr, instance_type='t2.micro', volume_size='8'):
     '''
     Launches n_parties_per_region in ever region from given regions.
     :param dict nppr: dict region_name --> n_parties_per_region
@@ -335,7 +337,7 @@ def launch_new_instances(nppr, instance_type='t2.micro'):
     for region_name in regions:
         print(region_name, '', end='')
         instances = launch_new_instances_in_region(
-            nppr[region_name], region_name, instance_type)
+            nppr[region_name], region_name, instance_type, volume_size)
         if not instances:
             failed.append(region_name)
 
@@ -456,7 +458,7 @@ def rs(): return run_protocol(7, use_regions(), 't2.micro')
 # ======================================================================================
 
 
-def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
+def setup(n_parties, regions=use_regions(), instance_type='t2.micro', volume_size='8'):
     # testnet limit
     assert n_parties <= 8
 
@@ -465,7 +467,7 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
 
     color_print('launching machines')
     nhpr = n_parties_per_regions(n_parties, regions)
-    launch_new_instances(nhpr, instance_type)
+    launch_new_instances(nhpr, instance_type, volume_size)
 
     color_print('waiting for transition from pending to running')
     wait('running', regions)
@@ -502,10 +504,10 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro'):
     return pids
 
 
-def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro'):
+def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', volume_size='8'):
     '''Runs the protocol.'''
 
-    pids = setup(n_parties, regions, instance_type)
+    pids = setup(n_parties, regions, instance_type, volume_size)
 
     parallel = n_parties > 1
 
