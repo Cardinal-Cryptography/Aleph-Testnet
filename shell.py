@@ -458,10 +458,7 @@ def rs(): return run_protocol(7, use_regions(), 't2.micro')
 # ======================================================================================
 
 
-def setup(n_parties, regions=use_regions(), instance_type='t2.micro', volume_size='8'):
-    # testnet limit
-    assert n_parties <= 8
-
+def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size='8'):
     start = time()
     parallel = n_parties > 1
 
@@ -482,7 +479,8 @@ def setup(n_parties, regions=use_regions(), instance_type='t2.micro', volume_siz
         ip_list.extend(ipl)
 
     write_addresses(ip_list)
-    generate_keys(n_parties)
+
+    validator_accounts = generate_validator_accounts(n_parties, chain)
     allow_traffic(ip_list, regions)
 
     color_print('waiting till ports are open on machines')

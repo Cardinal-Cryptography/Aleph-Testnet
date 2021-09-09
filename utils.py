@@ -1,8 +1,9 @@
 '''Helper functions for shell'''
 
 import os
+import json
 from pathlib import Path
-from subprocess import call
+from subprocess import call, check_output
 
 import boto3
 
@@ -233,20 +234,32 @@ def read_aws_keys():
         return access_key_id, secret_access_key
 
 
-def generate_keys(n_parties):
-    ''' Generate signing keys for the committee.'''
+def generate_validator_account():
+    ''' Generate secret phrase and account id for a validator.'''
+    cmd = './bin/aleph-node key generate --output-type json --words 24'
+    jsons = check_output(cmd.split())
+    creds = json.loads(jsons)
+    phrase = creds['secretPhrase']
+    account_id = creds['accountId']
 
-    with open('data/n_members', 'w') as f:
-        f.write(f'{n_parties}')
+    return phrase, account_id
 
-    cmd = './bin/aleph-node dev-keys --base-path data --chain testnet1 --key-types aura alp0'
-    call(cmd.split())
 
-    cmd = 'cp /tmp/authorities_keys data'
-    call(cmd.split())
+def generate_validator_accounts(n_parties, chain):
+    ''' Generate secret phrases and account ids for the committee.'''
 
-    cmd = './p2p_keys/target/release/p2p_keys'
-    call(cmd.split())
+    if chain == 'dev':
+        return None
+
+    phrases_account_ids = [generate_validator_account()
+                           for _ in range(n_parties)]
+
+    phrases, account_ids = list(zip(*phrases_account_ids))
+
+    with open('phrases', 'w') as f:
+        f.write(str(phrases))
+
+    return account_ids
 
 
 def write_addresses(ip_list):
