@@ -113,7 +113,7 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name,
 
 
 def launch_new_instances_in_region(n_parties=1, region_name=default_region(),
-                                   instance_type='t2.micro', volume_size='8'):
+                                   instance_type='t2.micro', volume_size=8):
     '''Launches n_parties in a given region.'''
 
     print('launching instances in', region_name)
@@ -324,7 +324,7 @@ def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None):
     return results
 
 
-def launch_new_instances(nppr, instance_type='t2.micro', volume_size='8'):
+def launch_new_instances(nppr, instance_type='t2.micro', volume_size=8):
     '''
     Launches n_parties_per_region in ever region from given regions.
     :param dict nppr: dict region_name --> n_parties_per_region
@@ -458,7 +458,7 @@ def rs(): return run_protocol(7, use_regions(), 't2.micro')
 # ======================================================================================
 
 
-def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size='8'):
+def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8):
     start = time()
     parallel = n_parties > 1
 
@@ -478,10 +478,15 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
         c += len(ipl)
         ip_list.extend(ipl)
 
+    allow_traffic(ip_list, regions)
+
     write_addresses(ip_list)
 
+    if not os.path.exists('data'):
+        os.mkdir('data')
     validator_accounts = generate_validator_accounts(n_parties, chain)
-    allow_traffic(ip_list, regions)
+    bootstrap_chain(n_parties, validator_accounts)
+    generate_p2p_keys(validator_accounts)
 
     color_print('waiting till ports are open on machines')
     wait('open 22', regions)
@@ -489,10 +494,8 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
     color_print('setup')
     run_task('setup', regions, parallel)
 
-    color_print('send data: keys, addresses')
-    cmd = 'zip -r data.zip data/'
-    call(cmd.split(), stdout=DEVNULL)
-    run_task('send-data', regions, parallel)
+    color_print('send data')
+    run_task('send-data', regions, parallel, False, pids)
 
     color_print('start nginx')
     run_task('run-nginx', regions, parallel)
@@ -502,7 +505,7 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
     return pids
 
 
-def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', volume_size='8'):
+def run_protocol(n_parties, regions=use_regions(), instance_type='t2.micro', volume_size=8):
     '''Runs the protocol.'''
 
     pids = setup(n_parties, regions, instance_type, volume_size)

@@ -23,13 +23,19 @@ def docker_setup(conn):
 
 
 @task
-def send_data(conn):
+def send_data(conn, pid):
     ''' Sends keys and addresses. '''
     # sends all the keys, refactor to send only the needed one
 
-    conn.put('data.zip', '.')
-    conn.run('unzip /home/ubuntu/data.zip')
-    conn.run('cp -r /home/ubuntu/data/* /tmp')
+    auth = pid_to_auth(pid)
+    zip_file = f'data{pid}.zip'
+    cmd = f'zip -r {zip_file} data/{auth}'
+    with open('x', 'w') as f:
+        f.write(cmd)
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip /home/ubuntu/{zip_file}')
+    conn.put('chainspec.json', '.')
 
 
 @task
@@ -131,32 +137,29 @@ def run_nginx(conn):
 
 
 def pid_to_auth(pid):
-    return ["Damian", "Tomasz", "Zbyszko", "Hansu",
-            "Adam", "Matt", "Antoni", "Michal"][int(pid)]
+    with open('account_ids', 'r') as f:
+        return f.readlines()[int(pid)][:-1]
 
 
-@task
+@ task
 def run_protocol(conn,  pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
     reserved_nodes = []
-    with open("data/addresses", "r") as f:
+    with open("addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
-    with open("data/libp2p_public_keys", "r") as f:
+    with open("libp2p_public_keys", "r") as f:
         keys = [key.strip() for key in f.readlines()]
     for i, address in enumerate(addresses):
         reserved_nodes.append(
             f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
     reserved_nodes = " ".join(reserved_nodes)
 
-    conn.run(f'echo {len(addresses)} > /tmp/n_members')
-
     cmd = f'/home/ubuntu/aleph-node '\
         '--validator '\
-        '--chain testnet1 '\
-        f'--base-path /tmp/{auth} '\
-        f'--name {auth} '\
+        '--chain chainspec.json '\
+        f'--base-path data/{auth} '\
         '--rpc-port 9933 '\
         '--ws-port 9944 '\
         '--port 30334 '\
@@ -166,28 +169,28 @@ def run_protocol(conn,  pid):
         f'--reserved-nodes {reserved_nodes} '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
-        f'--node-key-file /tmp/{auth}/libp2p_secret '\
-        '--session-period 500' \
-        '--millisecs-per-block 1000' \
-        f'2> {auth}-{pid}.log'
+        f'--node-key-file data/{auth}/p2p_secret '\
+        f'2> {pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
+    with open(f'x{pid}', 'w') as f:
+        f.write(cmd)
 
 
-@task
+@ task
 def purge(conn, pid):
     auth = pid_to_auth(pid)
     conn.run(
-        f'/home/ubuntu/aleph-node purge-chain --base-path /tmp/{auth} --chain testnet1 -y')
+        f'/home/ubuntu/aleph-node purge-chain --base-path data/{auth} --chain chainspec.json -y')
 
 
-@task
+@ task
 def dispatch(conn):
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
-@task
+@ task
 def stop_world(conn):
     ''' Kills the committee member.'''
     conn.run('killall -9 aleph-node')

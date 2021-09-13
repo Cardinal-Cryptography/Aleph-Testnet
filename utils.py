@@ -3,7 +3,7 @@
 import os
 import json
 from pathlib import Path
-from subprocess import call, check_output
+from subprocess import run
 
 import boto3
 
@@ -147,11 +147,11 @@ def generate_key_pair_all_regions(key_name='aleph'):
 
     print('generating key pair')
     # generate a private key
-    call(f'openssl genrsa -out {key_path} 2048'.split())
+    run(f'openssl genrsa -out {key_path} 2048'.split())
     # give the private key appropriate permissions
-    call(f'chmod 400 {key_path}'.split())
+    run(f'chmod 400 {key_path}'.split())
     # generate a public key corresponding to the private key
-    call(
+    run(
         f'openssl rsa -in {key_path} -outform PEM -pubout -out {key_path}.pub'.split())
     # read the public key in a form needed by aws
     with open(key_path+'.pub', 'r') as f:
@@ -207,7 +207,7 @@ def init_key_pair(region_name, key_name='aleph', dry_run=False):
                     if not dry_run:
                         print('local and upstream key match')
                     # check permissions
-                    call(f'chmod 400 {key_path}'.split())
+                    run(f'chmod 400 {key_path}'.split())
                     # everything is alright
 
                     return
@@ -237,10 +237,10 @@ def read_aws_keys():
 def generate_validator_account():
     ''' Generate secret phrase and account id for a validator.'''
     cmd = './bin/aleph-node key generate --output-type json --words 24'
-    jsons = check_output(cmd.split())
-    creds = json.loads(jsons)
+    jsons = run(cmd.split(), capture_output=True)
+    creds = json.loads(jsons.stdout)
     phrase = creds['secretPhrase']
-    account_id = creds['accountId']
+    account_id = creds['ss58PublicKey']
 
     return phrase, account_id
 
@@ -257,16 +257,42 @@ def generate_validator_accounts(n_parties, chain):
     phrases, account_ids = list(zip(*phrases_account_ids))
 
     with open('phrases', 'w') as f:
-        f.write(str(phrases))
+        f.writelines([p+'\n' for p in phrases])
+
+    with open('account_ids', 'w') as f:
+        f.writelines([a+'\n' for a in account_ids])
 
     return account_ids
 
 
-def write_addresses(ip_list):
-    if not os.path.exists('data'):
-        os.mkdir('data')
+def bootstrap_chain(n_parties, account_ids):
+    ''' Create the chain spec. '''
 
-    with open('data/addresses', 'w') as f:
+    cmd = './bin/aleph-node bootstrap-chain --base-path data'
+    if account_ids is None:
+        cmd += f' --chain-id a0dnet1 --n_members {n_parties}'
+    else:
+        cmd += f' --chain-id a0tnet1 --account-ids {",".join(account_ids)}'
+
+    chainspec = run(cmd.split(), capture_output=True)
+    chainspec = json.loads(chainspec.stdout)
+    with open('chainspec.json', 'w') as f:
+        json.dump(chainspec, f)
+
+
+def generate_p2p_keys(account_ids):
+    pks = ""
+    for auth in account_ids:
+        cmd = f'./bin/aleph-node key generate-node-key --file data/{auth}/p2p_secret'
+        pk = run(cmd.split(), capture_output=True)
+        pks += pk.stderr[:-1].decode() + '\n'
+
+    with open('libp2p_public_keys', 'w') as f:
+        f.write(pks)
+
+
+def write_addresses(ip_list):
+    with open('addresses', 'w') as f:
         for ip in ip_list:
             f.write(ip+'\n')
 
