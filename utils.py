@@ -35,8 +35,10 @@ def vpc_id_in_region(region_name):
     return vpcs_ids[0]
 
 
-def create_security_group(region_name, security_group_name='alephB', ip_list=[]):
+def create_security_group(region_name, ip_list=[], tag=''):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
 
@@ -67,8 +69,10 @@ def create_security_group(region_name, security_group_name='alephB', ip_list=[])
     return sg
 
 
-def update_security_group(region_name, security_group_name='alephB', ip_list=[]):
+def update_security_group(region_name, ip_list=[], tag=''):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
 
@@ -100,8 +104,10 @@ def update_security_group(region_name, security_group_name='alephB', ip_list=[])
             return security_group
 
 
-def security_group_id_by_region(region_name, security_group_name='alephB'):
+def security_group_id_by_region(region_name, tag=''):
     '''Finds id of a security group. It may differ for different regions'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
     security_groups = ec2.security_groups.all()
@@ -110,7 +116,7 @@ def security_group_id_by_region(region_name, security_group_name='alephB'):
             return security_group.id
 
     # it seems that the group does not exist, let fix that
-    return create_security_group(region_name, security_group_name).id
+    return create_security_group(region_name, tag=tag).id
 
 
 def check_key_uploaded_all_regions(key_name='aleph'):
@@ -270,7 +276,7 @@ def bootstrap_chain(n_parties, account_ids):
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
     if account_ids is None:
-        cmd += f' --chain-id a0dnet1 --n_members {n_parties}'
+        cmd += f' --chain-id a0dnet1 --n-members {n_parties}'
     else:
         cmd += f' --chain-id a0tnet1 --account-ids {",".join(account_ids)}'
 

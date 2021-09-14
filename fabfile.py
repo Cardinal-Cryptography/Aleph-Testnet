@@ -179,8 +179,6 @@ def run_protocol(conn,  pid):
 
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
-    with open(f'x{pid}', 'w') as f:
-        f.write(cmd)
 
 
 @ task
