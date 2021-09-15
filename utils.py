@@ -240,7 +240,7 @@ def read_aws_keys():
         return access_key_id, secret_access_key
 
 
-def generate_validator_account():
+def generate_account():
     ''' Generate secret phrase and account id for a validator.'''
     cmd = './bin/aleph-node key generate --output-type json --words 24'
     jsons = run(cmd.split(), capture_output=True)
@@ -255,10 +255,9 @@ def generate_validator_accounts(n_parties, chain):
     ''' Generate secret phrases and account ids for the committee.'''
 
     if chain == 'dev':
-        return None
+        return [str(i) for i in range(n_parties)]
 
-    phrases_account_ids = [generate_validator_account()
-                           for _ in range(n_parties)]
+    phrases_account_ids = [generate_account() for _ in range(n_parties)]
 
     phrases, account_ids = list(zip(*phrases_account_ids))
 
@@ -271,12 +270,12 @@ def generate_validator_accounts(n_parties, chain):
     return account_ids
 
 
-def bootstrap_chain(n_parties, account_ids):
+def bootstrap_chain(account_ids, chain):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
-    if account_ids is None:
-        cmd += f' --chain-id a0dnet1 --n-members {n_parties}'
+    if chain == 'dev':
+        cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
     else:
         cmd += f' --chain-id a0tnet1 --account-ids {",".join(account_ids)}'
 

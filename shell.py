@@ -450,7 +450,7 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
     if not os.path.exists('data'):
         os.mkdir('data')
     validator_accounts = generate_validator_accounts(n_parties, chain)
-    bootstrap_chain(n_parties, validator_accounts)
+    bootstrap_chain(validator_accounts, chain)
     generate_p2p_keys(validator_accounts)
 
     color_print('waiting till ports are open on machines')

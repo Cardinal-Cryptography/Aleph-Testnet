@@ -64,12 +64,8 @@ def update_node_image(conn):
 
 @task
 def get_logs(conn, pid):
-    authorities = ["Damian", "Tomasz", "Zbyszko",
-                   "Hansu", "Adam", "Matt", "Antoni", "Michal"]
-    pid = int(pid)
-    auth = authorities[pid]
-    conn.run(f'zip {auth}.log.zip /home/ubuntu/{auth}-{pid}.log')
-    conn.get(f'/home/ubuntu/{auth}.log.zip', './')
+    conn.run(f'zip {pid}.log.zip /home/ubuntu/{pid}.log')
+    conn.get(f'/home/ubuntu/{pid}.log.zip', '.')
 
 
 @task
