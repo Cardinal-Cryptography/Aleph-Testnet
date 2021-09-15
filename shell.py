@@ -198,7 +198,7 @@ def run_cmd_in_region(shcmd='ls', region_name=default_region(), tag='dev'):
     return results
 
 
-def allow_traffic_in_region(ip_list, region_name=default_region(), tag='dev'):
+def allow_traffic_in_region(region_name=default_region(), ip_list=[], tag='dev'):
     '''Updates security group with addresses in given ip_list.'''
 
     update_security_group(region_name, ip_list, tag)
@@ -373,7 +373,7 @@ def run_cmd(cmd='ls', regions=use_regions(), parallel=True, tag='dev'):
     return exec_for_regions(partial(run_cmd_in_region, cmd, tag=tag), regions, parallel)
 
 
-def allow_traffic(ip_list, regions=use_regions(), parallel=True, tag='dev'):
+def allow_traffic(regions=use_regions(), ip_list=[], parallel=True, tag='dev'):
     '''
     Adds ip_list to security group enabling traffic among instances.
     :param list ip_list: list of all allowed ips
@@ -381,7 +381,7 @@ def allow_traffic(ip_list, regions=use_regions(), parallel=True, tag='dev'):
     '''
 
     exec_for_regions(partial(allow_traffic_in_region,
-                     ip_list, tag=tag), regions, parallel)
+                     ip_list=ip_list, tag=tag), regions, parallel)
 
 
 def wait(target_state, regions=use_regions(), tag='dev'):
@@ -443,7 +443,7 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
         c += len(ipl)
         ip_list.extend(ipl)
 
-    allow_traffic(ip_list, regions, tag)
+    allow_traffic(ip_list, regions, parallel, tag)
 
     write_addresses(ip_list)
 
