@@ -147,15 +147,11 @@ def run_protocol(conn,  pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
-    reserved_nodes = []
     with open("addresses", "r") as f:
-        addresses = [addr.strip() for addr in f.readlines()]
+        addr = f.readline().strip()
     with open("libp2p_public_keys", "r") as f:
-        keys = [key.strip() for key in f.readlines()]
-    for i, address in enumerate(addresses):
-        reserved_nodes.append(
-            f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
-    reserved_nodes = " ".join(reserved_nodes)
+        key = f.readline().strip()
+    bootnode = f'/ip4/{addr}/tcp/30334/p2p/{key}'
 
     cmd = f'/home/ubuntu/aleph-node '\
         '--validator '\
@@ -167,7 +163,7 @@ def run_protocol(conn,  pid):
         '--execution Native '\
         '--no-prometheus '\
         '--no-telemetry '\
-        f'--reserved-nodes {reserved_nodes} '\
+        f'--bootnodes {bootnode} '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
         f'--node-key-file data/{auth}/p2p_secret '\

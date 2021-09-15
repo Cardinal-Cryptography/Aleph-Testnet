@@ -443,7 +443,7 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
         c += len(ipl)
         ip_list.extend(ipl)
 
-    allow_traffic(ip_list, regions, parallel, tag)
+    allow_traffic(regions, ip_list, parallel, tag)
 
     write_addresses(ip_list)
 

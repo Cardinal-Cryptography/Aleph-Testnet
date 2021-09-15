@@ -277,15 +277,18 @@ def bootstrap_chain(account_ids, chain):
     if chain == 'dev':
         cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
     else:
-        cmd += f' --chain-id a0tnet1'\
-            ' --chain-name "Aleph Zero Development"'\
-            ' --account-ids {",".join(account_ids)}'\
+        cmd += ' --chain-id a0tnet1'\
+            ' --chain-name AlephZeroTestnet'\
+            f' --account-ids {",".join(account_ids)}'\
             ' --session-period 900'\
             ' --millisecs-per-block 1000'\
             ' --token-symbol TZERO'
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
+    # TODO tmp workaround
+    if chain != 'dev':
+        chainspec['name'] = 'Aleph Zero Testnet'
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
 
