@@ -277,12 +277,17 @@ def bootstrap_chain(account_ids, chain):
     if chain == 'dev':
         cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
     else:
-        cmd += f' --chain-id a0tnet1 --account-ids {",".join(account_ids)}'
+        cmd += f' --chain-id a0tnet1'\
+            ' --chain-name "Aleph Zero Development"'\
+            ' --account-ids {",".join(account_ids)}'\
+            ' --session-period 900'\
+            ' --millisecs-per-block 1000'\
+            ' --token-symbol TZERO'
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
     with open('chainspec.json', 'w') as f:
-        json.dump(chainspec, f)
+        json.dump(chainspec, f, indent=4)
 
 
 def generate_p2p_keys(account_ids):
