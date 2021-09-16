@@ -2,7 +2,7 @@
 import os
 
 from functools import partial
-from subprocess import run
+from subprocess import run, call
 from time import sleep, time
 from joblib import Parallel, delayed
 
@@ -193,7 +193,7 @@ def run_cmd_in_region(shcmd='ls', region_name=default_region(), tag='dev'):
     results = []
     for ip in ip_list:
         cmd = f'ssh -o "StrictHostKeyChecking no" -q -i key_pairs/aleph.pem ubuntu@{ip} -t "{shcmd}"'
-        results.append(run(cmd.split(), capture_output=True).returncode == 0)
+        results.append(call(cmd, shell=True))
 
     return results
 
