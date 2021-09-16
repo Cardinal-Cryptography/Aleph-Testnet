@@ -35,8 +35,10 @@ def vpc_id_in_region(region_name):
     return vpcs_ids[0]
 
 
-def create_security_group(region_name, security_group_name='alephB', ip_list=[]):
+def create_security_group(region_name, ip_list=[], tag=''):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
 
@@ -67,8 +69,10 @@ def create_security_group(region_name, security_group_name='alephB', ip_list=[])
     return sg
 
 
-def update_security_group(region_name, security_group_name='alephB', ip_list=[]):
+def update_security_group(region_name, ip_list=[], tag=''):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
 
@@ -100,8 +104,10 @@ def update_security_group(region_name, security_group_name='alephB', ip_list=[])
             return security_group
 
 
-def security_group_id_by_region(region_name, security_group_name='alephB'):
+def security_group_id_by_region(region_name, tag=''):
     '''Finds id of a security group. It may differ for different regions'''
+
+    security_group_name = 'aleph-' + tag
 
     ec2 = boto3.resource('ec2', region_name)
     security_groups = ec2.security_groups.all()
@@ -110,7 +116,7 @@ def security_group_id_by_region(region_name, security_group_name='alephB'):
             return security_group.id
 
     # it seems that the group does not exist, let fix that
-    return create_security_group(region_name, security_group_name).id
+    return create_security_group(region_name, tag=tag).id
 
 
 def check_key_uploaded_all_regions(key_name='aleph'):
@@ -234,7 +240,7 @@ def read_aws_keys():
         return access_key_id, secret_access_key
 
 
-def generate_validator_account():
+def generate_account():
     ''' Generate secret phrase and account id for a validator.'''
     cmd = './bin/aleph-node key generate --output-type json --words 24'
     jsons = run(cmd.split(), capture_output=True)
@@ -249,10 +255,9 @@ def generate_validator_accounts(n_parties, chain):
     ''' Generate secret phrases and account ids for the committee.'''
 
     if chain == 'dev':
-        return None
+        return [str(i) for i in range(n_parties)]
 
-    phrases_account_ids = [generate_validator_account()
-                           for _ in range(n_parties)]
+    phrases_account_ids = [generate_account() for _ in range(n_parties)]
 
     phrases, account_ids = list(zip(*phrases_account_ids))
 
@@ -265,19 +270,27 @@ def generate_validator_accounts(n_parties, chain):
     return account_ids
 
 
-def bootstrap_chain(n_parties, account_ids):
+def bootstrap_chain(account_ids, chain):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
-    if account_ids is None:
-        cmd += f' --chain-id a0dnet1 --n_members {n_parties}'
+    if chain == 'dev':
+        cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
     else:
-        cmd += f' --chain-id a0tnet1 --account-ids {",".join(account_ids)}'
+        cmd += ' --chain-id a0tnet1'\
+            ' --chain-name AlephZeroTestnet'\
+            f' --account-ids {",".join(account_ids)}'\
+            ' --session-period 900'\
+            ' --millisecs-per-block 1000'\
+            ' --token-symbol TZERO'
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
+    # TODO tmp workaround
+    if chain != 'dev':
+        chainspec['name'] = 'Aleph Zero Testnet'
     with open('chainspec.json', 'w') as f:
-        json.dump(chainspec, f)
+        json.dump(chainspec, f, indent=4)
 
 
 def generate_p2p_keys(account_ids):
