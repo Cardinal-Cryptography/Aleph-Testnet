@@ -422,6 +422,12 @@ ti = terminate_instances
 # ======================================================================================
 
 
+def upgrade_binary(regions, tag='dev', delay=10):
+    for ip in instances_ip(regions, 1, tag):
+        run_task_for_ip('upgrade-binary', [ip], 0)
+        sleep(delay)
+
+
 def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
           volume_size=8, tag='dev'):
     start = time()

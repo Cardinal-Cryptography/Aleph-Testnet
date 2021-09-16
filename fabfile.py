@@ -191,6 +191,37 @@ def stop_world(conn):
     conn.run('killall -9 aleph-node')
 
 # ======================================================================================
+#                                       testnet scenarios
+# ======================================================================================
+
+
+@task
+def send_new_binary(conn):
+    # 1. send new binary
+    zip_file = 'aleph-node-new.zip'
+    cmd = f'zip -j {zip_file} bin/aleph-node-new'
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+
+    # 2. make backups
+    conn.run(
+        'cp aleph-node aleph-node-old.backup && cp aleph-node-new aleph-node-new.backup')
+
+
+@task
+def upgrade_binary(conn):
+    # 1. stop current binary
+    conn.run('killall -9 aleph-node')
+
+    # 2. replace binary with the new version
+    conn.run('mv aleph-node aleph-node-old && mv aleph-node-new aleph-node')
+
+    # 3. restart binary
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
+
+
+# ======================================================================================
 #                                        misc
 # ======================================================================================
 
