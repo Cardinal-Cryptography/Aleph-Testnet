@@ -449,9 +449,10 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
 
     if not os.path.exists('data'):
         os.mkdir('data')
-    validator_accounts = generate_validator_accounts(n_parties, chain)
-    bootstrap_chain(validator_accounts, chain)
-    generate_p2p_keys(validator_accounts)
+    validators = generate_accounts(
+        n_parties, chain, 'validator_phrases', 'validator_accounts')
+    bootstrap_chain(validators, chain)
+    generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
     wait('open 22', regions, tag)
@@ -497,3 +498,5 @@ def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
 
     color_print('run docker compose')
     run_task('run-docker-compose', regions, parallel, False, pids)
+
+    instances_state(testnet_regions(), 'testnet')
