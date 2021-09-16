@@ -111,7 +111,12 @@ def run_docker_compose(conn, pid):
 
 @task
 def send_binary(conn):
-    conn.put('bin/aleph-node', '.')
+    ''' Zips, sends and unzips the binary. '''
+    zip_file = 'aleph-node.zip'
+    cmd = f'zip -j {zip_file} bin/aleph-node'
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
 
 # ======================================================================================
 #                                       nginx
