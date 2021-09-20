@@ -109,7 +109,7 @@ def all_instances_in_region(region_name=default_region(), states=['running', 'pe
     for instance in ec2.instances.all():
         if instance.state['Name'] in states:
             it = instance.tags
-            if (it is None and tag == '') or (it is not None and it[0]['Value'] == tag):
+            if (it is None and tag == '') or (it is not None and it[0]['Key'] == 'net' and it[0]['Value'] == tag):
                 instances.append(instance)
 
     return instances
@@ -422,14 +422,17 @@ ti = terminate_instances
 # ======================================================================================
 
 
-def upgrade_binary(regions, tag='dev', delay=10):
+def upgrade_binary(regions, tag='dev', delay=0):
     for ip in instances_ip(regions, 1, tag):
         run_task_for_ip('upgrade-binary', [ip], 0)
-        sleep(delay)
+        if delay > 0:
+            sleep(delay)
+        else:
+            input("to proceed, press any key")
 
 
-def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-          volume_size=8, tag='dev'):
+def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
+                        volume_size=8, tag='dev'):
     start = time()
     parallel = n_parties > 1
 
@@ -477,10 +480,11 @@ def setup(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro
     return pids
 
 
-def run_protocol(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+def setup_node(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
     '''Runs the protocol.'''
 
-    pids = setup(n_parties, chain, regions, instance_type, volume_size, tag)
+    pids = setup_infrastructre(
+        n_parties, chain, regions, instance_type, volume_size, tag)
 
     parallel = n_parties > 1
 
@@ -488,11 +492,11 @@ def run_protocol(n_parties, chain='dev', regions=use_regions(), instance_type='t
     run_task('send-binary', regions, parallel, tag)
 
     # run the experiment
-    run_task('run-protocol', regions, parallel, tag, pids)
+    run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
 
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
-    pids = setup(n_parties, regions, instance_type)
+    pids = setup_infrastructre(n_parties, regions, instance_type)
 
     parallel = n_parties > 1
 

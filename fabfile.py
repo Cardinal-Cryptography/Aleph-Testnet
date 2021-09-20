@@ -65,7 +65,7 @@ def update_node_image(conn):
 @task
 def get_logs(conn, pid):
     conn.run(f'zip {pid}.log.zip /home/ubuntu/{pid}.log')
-    conn.get(f'/home/ubuntu/{pid}.log.zip', '.')
+    conn.get(f'/home/ubuntu/{pid}.log.zip', 'logs/')
 
 
 @task
@@ -143,7 +143,7 @@ def pid_to_auth(pid):
 
 
 @ task
-def run_protocol(conn,  pid):
+def create_dispatch_cmd(conn,  pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
@@ -215,7 +215,7 @@ def upgrade_binary(conn):
     conn.run('killall -9 aleph-node')
 
     # 2. replace binary with the new version
-    conn.run('mv aleph-node aleph-node-old && mv aleph-node-new aleph-node')
+    conn.run('cp aleph-node aleph-node-old && cp aleph-node-new aleph-node')
 
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
