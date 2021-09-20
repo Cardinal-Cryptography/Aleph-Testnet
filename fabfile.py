@@ -147,11 +147,13 @@ def create_dispatch_cmd(conn,  pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
+    n_bootnodes = 2
     with open("addresses", "r") as f:
-        addr = f.readline().strip()
+        addrs = [f.readline().strip() for _ in range(n_bootnodes)]
     with open("libp2p_public_keys", "r") as f:
-        key = f.readline().strip()
-    bootnode = f'/ip4/{addr}/tcp/30334/p2p/{key}'
+        keys = [f.readline().strip() for _ in range(n_bootnodes)]
+    bootnodes = " ".join([
+        f'/ip4/{addr}/tcp/30334/p2p/{key}' for addr, key in zip(addrs, keys)])
 
     cmd = f'/home/ubuntu/aleph-node '\
         '--validator '\
@@ -163,7 +165,7 @@ def create_dispatch_cmd(conn,  pid):
         '--execution Native '\
         '--no-prometheus '\
         '--no-telemetry '\
-        f'--bootnodes {bootnode} '\
+        f'--bootnodes {bootnodes} '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
         f'--node-key-file data/{auth}/p2p_secret '\
