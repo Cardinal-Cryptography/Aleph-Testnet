@@ -138,7 +138,7 @@ def run_nginx(conn):
 
 
 def pid_to_auth(pid):
-    with open('account_ids', 'r') as f:
+    with open('validator_accounts', 'r') as f:
         return f.readlines()[int(pid)][:-1]
 
 
@@ -193,6 +193,11 @@ def stop_world(conn):
 # ======================================================================================
 #                                        misc
 # ======================================================================================
+
+
+@task
+def send_chainspec(conn):
+    conn.put('chainspec.json', '.')
 
 
 @ task

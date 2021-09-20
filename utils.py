@@ -251,20 +251,19 @@ def generate_account():
     return phrase, account_id
 
 
-def generate_validator_accounts(n_parties, chain):
+def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     ''' Generate secret phrases and account ids for the committee.'''
 
     if chain == 'dev':
         return [str(i) for i in range(n_parties)]
 
     phrases_account_ids = [generate_account() for _ in range(n_parties)]
-
     phrases, account_ids = list(zip(*phrases_account_ids))
 
-    with open('phrases', 'w') as f:
+    with open(phrases_path, 'w') as f:
         f.writelines([p+'\n' for p in phrases])
 
-    with open('account_ids', 'w') as f:
+    with open(account_ids_path, 'w') as f:
         f.writelines([a+'\n' for a in account_ids])
 
     return account_ids
@@ -286,11 +285,45 @@ def bootstrap_chain(account_ids, chain):
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
+
     # TODO tmp workaround
     if chain != 'dev':
         chainspec['name'] = 'Aleph Zero Testnet'
+
+    sudo = generate_accounts(
+        1, 'gen', 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
+    chainspec['genesis']['runtime']['sudo']['key'] = sudo
+    chainspec['genesis']['runtime']['balances']['balances'].append(
+        (sudo, 10**17))
+
+    prepare_vesting(chainspec)
+
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
+
+
+def prepare_vesting(chainspec):
+    vested_accounts = generate_accounts(24, 'gen', 'accounts/vested_pharses',
+                                        'accounts/vested_aids')
+    balances = []
+    vesting = []
+    azero = 1000000000000
+    hundred_azero = 100 * azero
+    day = 86400
+    for i, aid in enumerate(vested_accounts[:12]):
+        mod = i+1
+        balances.append((aid, hundred_azero))
+        vesting.append((aid, mod, mod*day, mod*azero))
+
+    month = 2592000
+    for i, aid in enumerate(vested_accounts[12:]):
+        mod = i+1
+        balances.append((aid, 100*hundred_azero))
+        vesting.append((aid, mod, mod*month, mod*hundred_azero))
+
+    rtm = chainspec['genesis']['runtime']
+    rtm['balances']['balances'] += balances
+    rtm['vesting']['vesting'] = vesting
 
 
 def generate_p2p_keys(account_ids):
@@ -346,12 +379,18 @@ def n_parties_per_regions(n_parties, regions=use_regions()):
     return nhpr
 
 
+def testnet_regions():
+    return ['eu-central-1', 'eu-west-1', 'eu-west-2', 'us-east-1', 'us-east-2']
+
+
 def translate_region_codes(regions):
     dictionary = {
         'us-east-1': 'Virginia,',
+        'us-east-2': 'Ohio,',
         'us-west-1': 'N. California,',
         'us-west-2': 'Oregon,',
         'eu-west-1': 'Ireland,',
+        'eu-west-2': 'London,',
         'eu-central-1': 'Frankfurt,',
         'ap-southeast-1': 'Singapore,',
         'ap-southeast-2': 'Sydney,',
