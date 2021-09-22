@@ -65,7 +65,7 @@ def update_node_image(conn):
 @task
 def get_logs(conn, pid):
     conn.run(f'zip {pid}.log.zip /home/ubuntu/{pid}.log')
-    conn.get(f'/home/ubuntu/{pid}.log.zip', '.')
+    conn.get(f'/home/ubuntu/{pid}.log.zip', 'logs/')
 
 
 @task
@@ -143,15 +143,19 @@ def pid_to_auth(pid):
 
 
 @ task
-def run_protocol(conn,  pid):
+def create_dispatch_cmd(conn,  pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
+    reserved_nodes = []
     with open("addresses", "r") as f:
-        addr = f.readline().strip()
+        addresses = [addr.strip() for addr in f.readlines()]
     with open("libp2p_public_keys", "r") as f:
-        key = f.readline().strip()
-    bootnode = f'/ip4/{addr}/tcp/30334/p2p/{key}'
+        keys = [key.strip() for key in f.readlines()]
+    for i, address in enumerate(addresses):
+        reserved_nodes.append(
+            f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
+    reserved_nodes = " ".join(reserved_nodes)
 
     cmd = f'/home/ubuntu/aleph-node '\
         '--validator '\
@@ -163,10 +167,12 @@ def run_protocol(conn,  pid):
         '--execution Native '\
         '--no-prometheus '\
         '--no-telemetry '\
-        f'--bootnodes {bootnode} '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
         f'--node-key-file data/{auth}/p2p_secret '\
+        f'--reserved-nodes {reserved_nodes} '\
+        '-lafa=debug '\
+        '-lAlephBFT-creator=trace '\
         f'2> {pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
@@ -189,6 +195,37 @@ def dispatch(conn):
 def stop_world(conn):
     ''' Kills the committee member.'''
     conn.run('killall -9 aleph-node')
+
+# ======================================================================================
+#                                       testnet scenarios
+# ======================================================================================
+
+
+@task
+def send_new_binary(conn):
+    # 1. send new binary
+    zip_file = 'aleph-node-new.zip'
+    cmd = f'zip -j {zip_file} bin/aleph-node-new'
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+
+    # 2. make backups
+    conn.run(
+        'cp aleph-node aleph-node-old.backup && cp aleph-node-new aleph-node-new.backup')
+
+
+@task
+def upgrade_binary(conn):
+    # 1. stop current binary
+    conn.run('killall -9 aleph-node')
+
+    # 2. replace binary with the new version
+    conn.run('cp aleph-node aleph-node-old && cp aleph-node-new aleph-node')
+
+    # 3. restart binary
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
+
 
 # ======================================================================================
 #                                        misc
