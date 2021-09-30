@@ -509,8 +509,8 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     allow_all_traffic(regions, True, tag)
 
 
-def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
-    pids = setup_infrastructre(n_parties, regions, instance_type)
+def run_devnet(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro'):
+    pids = setup_infrastructre(n_parties, chain, regions, instance_type)
 
     parallel = n_parties > 1
 
