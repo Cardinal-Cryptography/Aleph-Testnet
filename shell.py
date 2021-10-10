@@ -384,6 +384,11 @@ def allow_traffic(regions=use_regions(), ip_list=[], parallel=True, tag='dev'):
                      ip_list=ip_list, tag=tag), regions, parallel)
 
 
+def allow_all_traffic(regions=use_regions(), parallel=True, tag='dev'):
+    exec_for_regions(partial(allow_all_traffic_in_region,
+                     tag=tag), regions, parallel)
+
+
 def wait(target_state, regions=use_regions(), tag='dev'):
     '''Waits until all machines in all given regions reach a given state.'''
 
@@ -480,8 +485,9 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
     return pids
 
 
-def setup_node(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
-    '''Runs the protocol.'''
+def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+    '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
+    task has to be run to start the nodes.'''
 
     pids = setup_infrastructre(
         n_parties, chain, regions, instance_type, volume_size, tag)
@@ -491,8 +497,16 @@ def setup_node(n_parties, chain='dev', regions=use_regions(), instance_type='t2.
     color_print('send the binary')
     run_task('send-binary', regions, parallel, tag)
 
-    # run the experiment
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
+
+
+def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+    '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
+    task has to be run to start the benchmark.'''
+
+    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag)
+
+    allow_all_traffic(regions, True, tag)
 
 
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):

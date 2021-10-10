@@ -165,7 +165,8 @@ def create_dispatch_cmd(conn,  pid):
         '--ws-port 9944 '\
         '--port 30334 '\
         '--execution Native '\
-        '--no-prometheus '\
+        '--prometheus-external '\
+        '--prometheus-port 9615 '\
         '--no-telemetry '\
         '--rpc-cors all '\
         '--rpc-methods Safe '\
