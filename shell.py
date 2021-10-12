@@ -461,8 +461,8 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
 
     write_addresses(ip_list)
 
-    if not os.path.exists('data'):
-        os.mkdir('data')
+    os.makedirs('data', exist_ok=True)
+
     validators = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
     bootstrap_chain(validators, chain)
