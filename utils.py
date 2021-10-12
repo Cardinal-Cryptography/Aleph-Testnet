@@ -69,6 +69,32 @@ def create_security_group(region_name, ip_list=[], tag=''):
     return sg
 
 
+def allow_all_traffic_in_region(region_name, tag=''):
+    security_group_name = 'aleph-' + tag
+
+    ec2 = boto3.resource('ec2', region_name)
+
+    for security_group in ec2.security_groups.all():
+        if security_group.group_name != security_group_name:
+            continue
+
+        security_group.revoke_ingress(
+            IpPermissions=security_group.ip_permissions)
+        security_group.authorize_ingress(
+            GroupName=security_group_name,
+            IpPermissions=[
+                {
+                    'FromPort': 0,
+                    'IpProtocol': '-1',
+                    'IpRanges': [{'CidrIp': f'0.0.0.0/0'}],
+                    'ToPort': 65535,
+                },
+            ]
+        )
+
+        return security_group
+
+
 def update_security_group(region_name, ip_list=[], tag=''):
     '''Creates security group that allows connecting via ssh and ports needed for sync'''
 
@@ -148,8 +174,7 @@ def generate_key_pair_all_regions(key_name='aleph'):
     fingerprint_path = f'key_pairs/{key_name}.fingerprint'
     assert not os.path.exists(key_path), 'key exists, just use it!'
 
-    if not os.path.exists('key_pairs'):
-        os.mkdir('key_pairs')
+    os.makedirs('key_pairs', exist_ok=True)
 
     print('generating key pair')
     # generate a private key
@@ -289,6 +314,8 @@ def bootstrap_chain(account_ids, chain):
     # TODO tmp workaround
     if chain != 'dev':
         chainspec['name'] = 'Aleph Zero Testnet'
+
+    os.makedirs('accounts', exist_ok=True)
 
     sudo = generate_accounts(
         1, 'gen', 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
