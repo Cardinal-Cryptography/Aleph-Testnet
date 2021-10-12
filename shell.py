@@ -384,9 +384,9 @@ def allow_traffic(regions=use_regions(), ip_list=[], parallel=True, tag='dev'):
                      ip_list=ip_list, tag=tag), regions, parallel)
 
 
-def allow_all_traffic(regions=use_regions(), parallel=True, tag='dev'):
+def allow_all_traffic(regions=use_regions(), tag='dev'):
     exec_for_regions(partial(allow_all_traffic_in_region,
-                     tag=tag), regions, parallel)
+                     tag=tag), regions, False)
 
 
 def wait(target_state, regions=use_regions(), tag='dev'):
