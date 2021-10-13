@@ -227,6 +227,22 @@ def upgrade_binary(conn):
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
+# ======================================================================================
+#                                       flooder
+# ======================================================================================
+
+
+@task
+def setup_flooder(conn):
+    conn.put('nvm.sh', '/home/ubuntu/')
+    conn.run('bash nvm.sh')
+
+
+@task
+def run_flooder(conn):
+    # Run script with
+    conn.run("node dist/index.js")
+
 
 # ======================================================================================
 #                                        misc

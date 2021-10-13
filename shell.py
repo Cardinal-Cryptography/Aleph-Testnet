@@ -436,6 +436,27 @@ def upgrade_binary(regions, tag='dev', delay=0):
             input("to proceed, press any key")
 
 
+def setup_flooder(n_flooders, regions, instance_type, tag):
+    flood_tag = tag+"-flood"
+
+    nhpr = n_parties_per_regions(n_flooders, regions)
+    launch_new_instances(nhpr, instance_type, 8, flood_tag)
+
+    color_print('waiting for transition from pending to running')
+    wait('running', regions, flood_tag)
+
+    color_print('waiting till ports are open on machines')
+    wait('open 22', regions, flood_tag)
+
+    run_task('setup-flooder', regions, True, flood_tag)
+
+    ip_list = instances_ip(regions, True, tag)
+    ip_list += instances_ip(regions, True, flood_tag)
+
+    # add flood machines to nodes firewall
+    allow_traffic(regions, ip_list, True, tag)
+
+
 def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
                         volume_size=8, tag='dev'):
     start = time()
