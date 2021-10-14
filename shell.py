@@ -32,7 +32,7 @@ def run_task_for_ip(task='test', ip_list=[], parallel=True, pids=None):
 
     if parallel:
         hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
-        pcmd = 'parallel fab -i key_pairs/aleph.pem -H'
+        pcmd = f'parallel {fab_cmd()} -H'
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
@@ -40,7 +40,7 @@ def run_task_for_ip(task='test', ip_list=[], parallel=True, pids=None):
                 hosts + ' :::+ ' + ' '.join(pids)
     else:
         hosts = ",".join(["ubuntu@"+ip for ip in ip_list])
-        cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task}'
+        cmd = f'{fab_cmd()} -H {hosts} {task}'
 
     try:
         return run(cmd.split(), capture_output=True)
@@ -163,7 +163,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
     ip_list = instances_ip_in_region(region_name, tag)
     if parallel:
         hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
-        pcmd = 'parallel fab -i key_pairs/aleph.pem -H'
+        pcmd = f'parallel {fab_cmd()} -H'
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
@@ -171,7 +171,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
                 hosts + ' :::+ ' + ' '.join(pids)
     else:
         hosts = ",".join(["ubuntu@"+ip for ip in ip_list])
-        cmd = f'fab -i key_pairs/aleph.pem -H {hosts} {task}'
+        cmd = f'{fab_cmd()} -H {hosts} {task}'
 
     try:
         return run(cmd.split(), capture_output=True)
@@ -218,7 +218,7 @@ def wait_in_region(target_state, region_name=default_region(), tag='dev'):
             i.wait_until_terminated()
     elif target_state == 'open 22':
         for i in instances:
-            cmd = f'fab -i key_pairs/aleph.pem -H ubuntu@{i.public_ip_address} test'
+            cmd = f'{fab_cmd()} -H ubuntu@{i.public_ip_address} test'
             while run(cmd.split(), capture_output=True).returncode != 0:
                 sleep(.1)
                 print('.', end='')
