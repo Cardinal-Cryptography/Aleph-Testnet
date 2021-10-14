@@ -506,7 +506,7 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
 
     setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag)
 
-    allow_all_traffic(regions, True, tag)
+    allow_all_traffic(regions, tag)
 
 
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
