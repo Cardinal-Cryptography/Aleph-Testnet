@@ -1,0 +1,6 @@
+fabric
+boto3
+ipython
+tqdm
+matplotlib
+joblib

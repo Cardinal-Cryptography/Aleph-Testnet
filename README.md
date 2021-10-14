@@ -8,7 +8,7 @@ Aleph Zero Blockchain python scripts for running TestNet and DevNet.
 - Put keys for ssh in key_pairs (both the private key e.g. `aleph.pem` and its fingerprint (`aleph.fingerprint`))
 - Put SSL certificates in the nginx/cert directory (`self-signed.crt` and `self-signed.key`)
 - Make sure you have the aleph node binary inside a bin directory (needed for committee key generation step, `cp <...>/aleph-node/target/release/aleph-node bin/`)
-- Install packages needed for orchestrating experiments: GNU parallel, fabric, zip, unzip and Python 3 packages: fabric, boto3, ipython, tqdm, matplotlib, joblib.
+- Install packages needed for orchestrating experiments: GNU parallel, fabric, zip, unzip and Python 3 packages (with `pip install -r requirements.txt`).
 - Then, run `ipython -i shell.py`. This opens a shell with procedures orchestrating experiments.
   The main procedure is `setup_nodes(n_processes, chain_type, regions, instance_type, volume_size, tag)` that prepares the `n_processes` spread
   uniformly across specified `regions` using EC2 machines of `instance_type`. E.g.
