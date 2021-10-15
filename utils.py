@@ -294,19 +294,27 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     return account_ids
 
 
-def bootstrap_chain(account_ids, chain):
+def bootstrap_chain(account_ids, chain, **chain_flags):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
     if chain == 'dev':
         cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
     else:
-        cmd += ' --chain-id a0tnet1'\
-            ' --chain-name AlephZeroTestnet'\
-            f' --account-ids {",".join(account_ids)}'\
-            ' --session-period 900'\
-            ' --millisecs-per-block 1000'\
-            ' --token-symbol TZERO'
+        default_flags = [
+            ('--chain-id', 'a0tnet1'),
+            ('--chain-name', 'AlephZeroTestnet'),
+            ('--account-ids', ",".join(account_ids)),
+            ('--session-period', '900'),
+            ('--millisecs-per-block', '1000'),
+            ('--token-symbol', 'TZERO'),
+        ]
+
+        for (flag, value) in default_flags:
+            cmd += f' {flag} {chain_flags.get(flag, value)}'
+        for (flag, value) in chain_flags.items():
+            if flag not in list(zip(*default_flags))[0]:
+                cmd += f' {flag} {value}'
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
@@ -321,7 +329,7 @@ def bootstrap_chain(account_ids, chain):
         1, 'gen', 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
     chainspec['genesis']['runtime']['sudo']['key'] = sudo
     chainspec['genesis']['runtime']['balances']['balances'].append(
-        (sudo, 10**17))
+        (sudo, 10 ** 17))
 
     prepare_vesting(chainspec)
 
