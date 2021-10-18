@@ -429,3 +429,9 @@ def translate_region_codes(regions):
 
 def color_print(string):
     print('\x1b[6;30;42m' + string + '\x1b[0m')
+
+
+def fab_cmd():
+    fabfile_path = os.environ.get('FABFILE_PATH')
+    fabfile_path_flag = f'-r {fabfile_path}' if fabfile_path else ''
+    return f'fab -i key_pairs/aleph.pem {fabfile_path_flag}'
