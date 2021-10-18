@@ -436,8 +436,8 @@ def upgrade_binary(regions, tag='dev', delay=0):
             input("to proceed, press any key")
 
 
-def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                        volume_size=8, tag='dev'):
+def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
+                         volume_size=8, tag='dev', **chain_flags):
     start = time()
     parallel = n_parties > 1
 
@@ -452,7 +452,7 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
     pids, ip2pid, ip_list, c = {}, {}, [], 0
     for r in regions:
         ipl = instances_ip_in_region(r, tag)
-        pids[r] = [str(pid) for pid in range(c, c+len(ipl))]
+        pids[r] = [str(pid) for pid in range(c, c + len(ipl))]
         ip2pid.update({ip: pid for (ip, pid) in zip(ipl, pids[r])})
         c += len(ipl)
         ip_list.extend(ipl)
@@ -465,7 +465,7 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
 
     validators = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain)
+    bootstrap_chain(validators, chain, **chain_flags)
     generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
@@ -480,17 +480,18 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
     color_print('start nginx')
     run_task('run-nginx', regions, parallel, tag)
 
-    color_print(f'establishing the environment took {round(time()-start, 2)}s')
+    color_print(f'establishing the environment took {round(time() - start, 2)}s')
 
     return pids
 
 
-def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
+                **chain_flags):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
-    pids = setup_infrastructre(
-        n_parties, chain, regions, instance_type, volume_size, tag)
+    pids = setup_infrastructure(
+        n_parties, chain, regions, instance_type, volume_size, tag, **chain_flags)
 
     parallel = n_parties > 1
 
@@ -500,17 +501,18 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
 
-def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
+                    **chain_flags):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
-    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag)
+    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, **chain_flags)
 
     allow_all_traffic(regions, tag)
 
 
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
-    pids = setup_infrastructre(n_parties, regions, instance_type)
+    pids = setup_infrastructure(n_parties, regions, instance_type)
 
     parallel = n_parties > 1
 
