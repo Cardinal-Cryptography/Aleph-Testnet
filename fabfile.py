@@ -252,14 +252,13 @@ def setup_flooder(conn):
 
 
 @task
-def run_flooder(conn, pid):
-    with open('addresses', 'r') as f:
-        addr = f.readlines()[int(pid)].strip()
+def prepare_accounts(conn):
     with open('accounts/sudo_sk', 'r') as f:
         sudo_sk = f.readline().strip()
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[0].strip()
 
     nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
-
     '''
     --max-old-space-size=4096 - heap size
     --scale=3000 - number of accounts
@@ -273,8 +272,18 @@ def run_flooder(conn, pid):
         '--only_flooding=true '\
         '--loops_count=0 '\
         f'--url="ws://{addr}:9944" '\
-        f'--root_account_uri={sudo_sk}'
+        f'--root_account_uri="{sudo_sk}"'
     conn.run(nvm+prepare)
+
+
+@task
+def run_flooder(conn, pid):
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[int(pid)].strip()
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+
+    nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
 
     '''
     --starting_account - id of account from which to start
@@ -288,7 +297,7 @@ def run_flooder(conn, pid):
         '--only_flooding=true '\
         '--loops_count=4000000  '\
         f'--url="ws://{addr}:9944" '\
-        f'--root_account_uri={sudo_sk}'
+        f'--root_account_uri="{sudo_sk}"'
     conn.run(nvm+run_cmd)
 
 
