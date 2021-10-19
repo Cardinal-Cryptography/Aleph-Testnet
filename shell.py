@@ -437,6 +437,11 @@ def upgrade_binary(regions, tag='dev', delay=0):
             input("to proceed, press any key")
 
 
+def prepare_accounts(region, tag):
+    ip = instances_ip_in_region(region, tag)[0]
+    run_task_for_ip('prepare-accounts', [ip], False)
+
+
 def setup_flooder(n_flooders, regions, instance_type, tag):
     flood_tag = tag+"-flood"
 
@@ -456,6 +461,8 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
 
     # add flood machines to nodes firewall
     allow_traffic(regions, ip_list, True, tag)
+
+    prepare_accounts(regions[0], flood_tag)
 
 
 def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
