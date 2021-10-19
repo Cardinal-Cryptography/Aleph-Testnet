@@ -167,6 +167,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
+            pids = [str(pid) for pid in pids]
             cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + \
                 hosts + ' :::+ ' + ' '.join(pids)
     else:

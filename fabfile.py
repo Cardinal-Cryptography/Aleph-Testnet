@@ -241,9 +241,66 @@ def setup_flooder(conn):
 
 
 @task
-def run_flooder(conn):
-    # Run script with
-    conn.run("node dist/index.js")
+def run_flooder(conn, pid):
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[int(pid)].strip()
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+
+    nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
+
+    '''
+    --max-old-space-size=4096 - heap size
+    --scale=3000 - number of accounts
+    --loops-count=0 - no additional txs
+    --only_flooding=true - no stats gathering
+    '''
+    prepare = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
+        '--finalization_timeout=20000 '\
+        '--scale=3000 '\
+        '--total_transactions=3000 '\
+        '--only_flooding=true '\
+        '--loops_count=0 '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri={sudo_sk}'
+    conn.run(nvm+prepare)
+
+    '''
+    --starting_account - id of account from which to start
+    --scale=500 - number of tx to send. scale * n_flooders has to be <= scale from above
+    '''
+    run_cmd = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
+        f'--starting_account={pid*500} '\
+        '--finalization_timeout=20000 '\
+        '--scale=500 '\
+        '--total_transactions=500 '\
+        '--only_flooding=true '\
+        '--loops_count=4000000  '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri={sudo_sk}'
+    conn.run(nvm+run_cmd)
+
+
+@task
+def monitor_flood(conn):
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[-1].strip()
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+
+    cmd = 'node --max-old-space-size=4096 dist/index.js '\
+        '--finalization_timeout=20000 '\
+        '--scale=1 '\
+        '--total_transactions=1 '\
+        '--total_threads=1 '\
+        '--keep_collecting_stats=true '\
+        '--only_flooding=true '\
+        '--loops_count=0 '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri={sudo_sk} '\
+        '1>./flood.log 2>&1'
+
+    conn.run(cmd)
 
 
 # ======================================================================================
