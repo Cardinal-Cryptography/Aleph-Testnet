@@ -276,11 +276,8 @@ def generate_account():
     return phrase, account_id
 
 
-def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
+def generate_accounts(n_parties, phrases_path, account_ids_path):
     ''' Generate secret phrases and account ids for the committee.'''
-
-    if chain == 'dev':
-        return [str(i) for i in range(n_parties)]
 
     phrases_account_ids = [generate_account() for _ in range(n_parties)]
     phrases, account_ids = list(zip(*phrases_account_ids))
@@ -294,31 +291,27 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     return account_ids
 
 
-def bootstrap_chain(account_ids, chain):
+def bootstrap_chain(account_ids):
     ''' Create the chain spec. '''
 
-    cmd = './bin/aleph-node bootstrap-chain --base-path data'
-    if chain == 'dev':
-        cmd += f' --chain-id a0dnet1 --n-members {len(account_ids)}'
-    else:
-        cmd += ' --chain-id a0tnet1'\
-            ' --chain-name AlephZeroTestnet'\
-            f' --account-ids {",".join(account_ids)}'\
-            ' --session-period 900'\
-            ' --millisecs-per-block 1000'\
-            ' --token-symbol TZERO'
+    cmd = './bin/aleph-node bootstrap-chain --base-path data'\
+        ' --chain-id a0tnet1'\
+        ' --chain-name AlephZeroTestnet'\
+        f' --account-ids {",".join(account_ids)}'\
+        ' --session-period 900'\
+        ' --millisecs-per-block 1000'\
+        ' --token-symbol TZERO'
 
     chainspec = run(cmd.split(), capture_output=True)
     chainspec = json.loads(chainspec.stdout)
 
     # TODO tmp workaround
-    if chain != 'dev':
-        chainspec['name'] = 'Aleph Zero Testnet'
+    chainspec['name'] = 'Aleph Zero Testnet'
 
     os.makedirs('accounts', exist_ok=True)
 
     sudo = generate_accounts(
-        1, 'gen', 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
+        1, 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
     chainspec['genesis']['runtime']['sudo']['key'] = sudo
     chainspec['genesis']['runtime']['balances']['balances'].append(
         (sudo, 10**17))
@@ -330,7 +323,7 @@ def bootstrap_chain(account_ids, chain):
 
 
 def prepare_vesting(chainspec):
-    vested_accounts = generate_accounts(24, 'gen', 'accounts/vested_pharses',
+    vested_accounts = generate_accounts(24, 'accounts/vested_pharses',
                                         'accounts/vested_aids')
     balances = []
     vesting = []
@@ -364,8 +357,8 @@ def generate_p2p_keys(account_ids):
         f.write(pks)
 
 
-def write_addresses(ip_list):
-    with open('addresses', 'w') as f:
+def write_addresses(ip_list, path='addresses'):
+    with open(path, 'w') as f:
         for ip in ip_list:
             f.write(ip+'\n')
 
