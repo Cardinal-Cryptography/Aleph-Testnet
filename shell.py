@@ -1,5 +1,6 @@
 '''This is a shell for orchestrating experiments on AWS EC 2'''
 import os
+import shutil
 
 from functools import partial
 from subprocess import run, call
@@ -36,6 +37,7 @@ def run_task_for_ip(task='test', ip_list=[], parallel=True, pids=None):
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
+            pids = [str(i) for i in pids]
             cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + \
                 hosts + ' :::+ ' + ' '.join(pids)
     else:
@@ -465,8 +467,7 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
     prepare_accounts(regions[0], flood_tag)
 
 
-def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                        volume_size=8, tag='dev'):
+def setup_infrastructre(n_parties, gen_chainspec=True, regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
     start = time()
     parallel = n_parties > 1
 
@@ -493,8 +494,13 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
     os.makedirs('data', exist_ok=True)
 
     validators = generate_accounts(
-        n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain)
+        n_parties, 'validator_phrases', 'validator_accounts')
+    if gen_chainspec:
+        bootstrap_chain(validators)
+    else:
+        for v in validators:
+            os.makedirs(f'data/{v}', exist_ok=True)
+
     generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
@@ -509,17 +515,17 @@ def setup_infrastructre(n_parties, chain='dev', regions=use_regions(), instance_
     color_print('start nginx')
     run_task('run-nginx', regions, parallel, tag)
 
-    color_print(f'establishing the environment took {round(time()-start, 2)}s')
+    color_print(f'establishing the infra took {round(time()-start, 2)}s')
 
     return pids
 
 
-def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
+def setup_nodes(n_parties, gen_chainspec=True, regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructre(
-        n_parties, chain, regions, instance_type, volume_size, tag)
+        n_parties, gen_chainspec, regions, instance_type, volume_size, tag)
 
     parallel = n_parties > 1
 
@@ -528,6 +534,51 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
 
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
+    return pids
+
+
+def setup_mainnet_stab(tag):
+    start = time()
+    regions = testnet_regions()
+
+    # setup nodes
+    color_print('setup nodes')
+    nodes_pids = setup_nodes(10, True, regions, 't3.medium', 8, tag)
+    shutil.copy('validator_accounts', 'nodes_accounts')
+    shutil.copy('addresses', 'nodes_addresses')
+    shutil.copy('libp2p_public_keys', 'nodes_libp2p_public_keys')
+
+    # setup bootnodes
+    color_print('setup bootnodes')
+    btag = tag+'-bootnodes'
+    setup_nodes(5, False, regions, 't3.medium', 8, btag)
+    shutil.copy('validator_accounts', 'bootnodes_accounts')
+    run_task('remove-validator-flag', regions, True, btag)
+
+    # recreate cmd for validators using validators accound ids, bootnodes addresses, and
+    # bootnodes p2pkeys
+    shutil.copy('nodes_accounts', 'validator_accounts')
+    run_task('create-dispatch-cmd', regions, True, tag, nodes_pids)
+
+    color_print('allow traffic')
+    # allow all traffic to bootnodes
+    allow_all_traffic(regions, btag)
+
+    # allow traffic among validators and bootnodes
+    bootnodes_ips = instances_ip(regions, True, btag)
+    nodes_ips = instances_ip(regions, True, tag)
+    allow_traffic(regions, bootnodes_ips+nodes_ips, True, tag)
+
+    color_print('dispatch')
+    # run bootnodes
+    run_task('dispatch', regions, True, btag)
+
+    # run validators
+    run_task('dispatch', regions, True, tag)
+
+    color_print(
+        f'establishing the mainnet stab took {round(time()-start, 2)}s')
+
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev'):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
@@ -535,7 +586,7 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
 
     setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag)
 
-    allow_all_traffic(regions, True, tag)
+    allow_all_traffic(regions, tag)
 
 
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
