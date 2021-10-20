@@ -267,12 +267,13 @@ def prepare_accounts(conn):
     '''
     prepare = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
         '--finalization_timeout=20000 '\
-        '--scale=3000 '\
-        '--total_transactions=3000 '\
+        '--scale=10000 '\
+        '--total_transactions=0 '\
         '--only_flooding=true '\
         '--loops_count=0 '\
         f'--url="ws://{addr}:9944" '\
-        f'--root_account_uri="{sudo_sk}"'
+        f'--root_account_uri="{sudo_sk}" '\
+        '1>prepare_accounts.log 2>&1'
     conn.run(nvm+prepare)
 
 
@@ -284,6 +285,7 @@ def run_flooder(conn, pid):
         sudo_sk = f.readline().strip()
 
     nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
+    pid = int(pid)
 
     '''
     --starting_account - id of account from which to start
@@ -297,7 +299,8 @@ def run_flooder(conn, pid):
         '--only_flooding=true '\
         '--loops_count=4000000  '\
         f'--url="ws://{addr}:9944" '\
-        f'--root_account_uri="{sudo_sk}"'
+        f'--root_account_uri="{sudo_sk}" '\
+        '2>flooder.log'
     conn.run(nvm+run_cmd)
 
 
