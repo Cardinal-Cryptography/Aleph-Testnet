@@ -67,7 +67,9 @@ def update_node_image(conn):
 
 @task
 def get_logs(conn, pid):
-    conn.run(f'zip {pid}.log.zip /home/ubuntu/{pid}.log')
+    conn.run(f'cp /home/ubuntu/{pid}.log node{pid}.log')
+    conn.run(f'zip {pid}.log.zip node{pid}.log')
+    conn.run(f'rm node{pid}.log')
     conn.get(f'/home/ubuntu/{pid}.log.zip', 'logs/')
 
 
