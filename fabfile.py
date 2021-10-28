@@ -13,6 +13,7 @@ from os import remove
 def setup(conn):
     conn.run('sudo apt update', hide='both')
     conn.run('sudo apt install -y zip unzip dtach', hide='both')
+    conn.run('sudo sh -c "echo core >/proc/sys/kernel/core_pattern"')
 
 
 @task
