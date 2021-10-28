@@ -283,11 +283,12 @@ def run_flooder(conn, pid):
     --scale=500 - number of tx to send. scale * n_flooders has to be <= scale from above
     '''
     run_cmd = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
-        f'--starting_account={pid*500} '\
+        f'--starting_account={pid*1000} '\
         '--finalization_timeout=20000 '\
-        '--scale=500 '\
-        '--total_transactions=500 '\
+        '--scale=1000 '\
+        '--total_transactions=10000 '\
         '--only_flooding=true '\
+        '--accelerate=100 '\
         '--loops_count=4000000  '\
         f'--url="ws://{addr}:9944" '\
         f'--root_account_uri="{sudo_sk}" '\
