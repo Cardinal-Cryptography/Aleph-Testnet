@@ -169,6 +169,7 @@ def create_dispatch_cmd(conn,  pid):
         '--prometheus-port 9615 '\
         '--no-telemetry '\
         '--rpc-cors all '\
+        '--unsafe-ws-external '\
         '--rpc-methods Safe '\
         f'--node-key-file data/{auth}/p2p_secret '\
         f'--reserved-nodes {reserved_nodes} '\
@@ -226,6 +227,33 @@ def upgrade_binary(conn):
 
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
+
+
+# ======================================================================================
+#                                       flooder
+# ======================================================================================
+
+
+@task
+def send_flooder_binary(conn):
+    # 1. send new binary
+    zip_file = 'flooder.zip'
+    cmd = f'zip -j {zip_file} bin/flooder'
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+
+
+@task
+def start_flooding(conn):
+    # 1. Send script
+    conn.put('bin/flooder_script.sh', '.')
+    
+    # 2. add exec permissions
+    conn.run('chmod +x ./flooder_script.sh')
+
+    # 3. flood
+    conn.run('./flooder_script.sh > flood.log 2> flood.error')
 
 
 # ======================================================================================

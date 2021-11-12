@@ -511,6 +511,23 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     allow_all_traffic(regions, tag)
 
 
+def setup_flooding(region=default_region()):
+    tag = 'flooder2'
+
+    color_print('launching instance')
+    launch_new_instances_in_region(n_parties=1, region_name=region, tag=tag)
+
+    color_print('waiting till ports are open on machines')
+    wait('open 22', [region], tag)
+
+    color_print('sending flooder binary')
+    run_task('setup', regions=[region], parallel=False, tag=tag)
+    run_task('send-flooder-binary', regions=[region], parallel=False, tag=tag)
+
+    color_print('start flooding')
+    run_task('start-flooding', regions=[region], parallel=False, tag=tag)
+
+
 def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
     pids = setup_infrastructure(n_parties, regions, instance_type)
 
