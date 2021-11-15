@@ -206,11 +206,7 @@ def stop_world(conn):
 @task
 def send_new_binary(conn):
     # 1. send new binary
-    zip_file = 'aleph-node-new.zip'
-    cmd = f'zip -j {zip_file} bin/aleph-node-new'
-    call(cmd.split())
-    conn.put(f'{zip_file}', '.')
-    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+    send_zip(conn, 'aleph-node-new.zip', 'bin/aleph-node-new')
 
     # 2. make backups
     conn.run(
@@ -237,11 +233,7 @@ def upgrade_binary(conn):
 @task
 def send_flooder_binary(conn):
     # 1. send new binary
-    zip_file = 'flooder.zip'
-    cmd = f'zip -j {zip_file} bin/flooder'
-    call(cmd.split())
-    conn.put(f'{zip_file}', '.')
-    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+    send_zip(conn, 'flooder.zip', 'bin/flooder')
 
 
 @task
@@ -271,3 +263,15 @@ def test(conn):
     ''' Tests if connection is ready '''
 
     conn.open()
+
+
+# ======================================================================================
+#                                        utils
+# ======================================================================================
+
+
+def send_zip(conn, file, zip_file):
+    cmd = f'zip -j {zip_file} {file}'
+    call(cmd.split())
+    conn.put(f'{zip_file}', '.')
+    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')

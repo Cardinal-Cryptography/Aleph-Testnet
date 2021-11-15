@@ -511,11 +511,11 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     allow_all_traffic(regions, tag)
 
 
-def setup_flooding(region=default_region()):
-    tag = 'flooder2'
-
+def setup_flooding(region=default_region(), tag='flooders'):
     color_print('launching instance')
     launch_new_instances_in_region(n_parties=1, region_name=region, tag=tag)
+
+    print('Flooder ip:', instances_ip_in_region(region_name=region, tag=tag))
 
     color_print('waiting till ports are open on machines')
     wait('open 22', [region], tag)
