@@ -13,7 +13,7 @@ from os import remove
 def setup(conn):
     conn.run('sudo apt update', hide='both')
     conn.run('sudo apt install -y zip unzip dtach', hide='both')
-    conn.run('sudo sh -c "echo core >/proc/sys/kernel/core_pattern"')
+    conn.run('sudo sh -c "echo core >/proc/sys/kernel/core_pattern"', hide='both')
 
 
 @task
@@ -145,7 +145,7 @@ def pid_to_auth(pid):
         return f.readlines()[int(pid)][:-1]
 
 
-@ task
+@task
 def create_dispatch_cmd(conn,  pid):
     ''' Runs the protocol.'''
 
@@ -185,19 +185,29 @@ def create_dispatch_cmd(conn,  pid):
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
 
 
-@ task
+@task
 def purge(conn, pid):
     auth = pid_to_auth(pid)
     conn.run(
         f'/home/ubuntu/aleph-node purge-chain --base-path data/{auth} --chain chainspec.json -y')
 
 
-@ task
+@task
 def dispatch(conn):
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
-@ task
+@task
+def run_prometheus_exporter(conn):
+    install_cmd = f'wget https://github.com/prometheus/node_exporter/releases/download/v*/node_exporter-*.*-amd64.tar.gz;' \
+        'tar xvfz node_exporter-*.*-amd64.tar.gz; '
+    conn.run(install_cmd)
+    run_cmd = f'cd node_exporter-*.*-amd64; ' \
+        './node-exporter;'
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_cmd}')
+
+
+@task
 def stop_world(conn):
     ''' Kills the committee member.'''
     conn.run('killall -9 aleph-node')
@@ -286,11 +296,12 @@ def run_flooder(conn, pid):
     run_cmd = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
         f'--starting_account={pid*1000} '\
         '--finalization_timeout=20000 '\
-        '--scale=1000 '\
-        '--total_transactions=10000 '\
+        '--scale=2000 '\
+        '--total_transactions=20000 '\
         '--only_flooding=true '\
         '--accelerate=100 '\
         '--loops_count=4000000  '\
+        '--initial_speed=1 '\
         f'--url="ws://{addr}:9944" '\
         f'--root_account_uri="{sudo_sk}" '\
         '2>flooder.log'
@@ -329,7 +340,7 @@ def send_chainspec(conn):
     conn.put('chainspec.json', '.')
 
 
-@ task
+@task
 def test(conn):
     ''' Tests if connection is ready '''
 
