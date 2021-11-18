@@ -486,27 +486,28 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                **chain_flags):
+                node_flags=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructure(
-        n_parties, chain, regions, instance_type, volume_size, tag, **chain_flags)
+        n_parties, chain, regions, instance_type, volume_size, tag, **(chain_flags or dict()))
 
     parallel = n_parties > 1
 
     color_print('send the binary')
     run_task('send-binary', regions, parallel, tag)
 
+    save_node_flags(node_flags or dict())
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                    **chain_flags):
+                    node_flags=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
-    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, **chain_flags)
+    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, chain_flags)
 
     allow_all_traffic(regions, tag)
 

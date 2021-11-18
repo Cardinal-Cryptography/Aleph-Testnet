@@ -2,6 +2,7 @@
 
 import os
 import json
+from os.path import join
 from pathlib import Path
 from subprocess import run
 
@@ -441,3 +442,8 @@ def fab_cmd():
     fabfile_path = os.environ.get('FABFILE_PATH')
     fabfile_path_flag = f'-r {fabfile_path}' if fabfile_path else ''
     return f'fab -i key_pairs/aleph.pem {fabfile_path_flag}'
+
+
+def save_node_flags(flags):
+    with open(join(os.getcwd(), 'node_flags.json'), 'w') as f:
+        json.dump(flags, f)
