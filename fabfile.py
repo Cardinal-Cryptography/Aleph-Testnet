@@ -1,11 +1,11 @@
 '''Routines called by fab. Assumes that all are called from */experiments/aws.'''
 import json
-import os
 from itertools import chain
-from os.path import join
-from subprocess import call
-from fabric import task
 from os import remove
+from subprocess import call
+
+from fabric import task
+
 
 # ======================================================================================
 #                                   setup
@@ -184,7 +184,7 @@ def create_dispatch_cmd(conn, pid):
         '--reserved-nodes': reserved_nodes,
     }
 
-    with open(join(os.getcwd(), 'node_flags.json')) as f:
+    with open('node_flags.json', 'r') as f:
         custom_val_flags = json.load(f)
 
     val_flags.update(custom_val_flags)

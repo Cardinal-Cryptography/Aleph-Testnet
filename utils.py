@@ -1,8 +1,7 @@
 '''Helper functions for shell'''
 
-import os
 import json
-from os.path import join
+import os
 from pathlib import Path
 from subprocess import run
 
@@ -445,5 +444,5 @@ def fab_cmd():
 
 
 def save_node_flags(flags):
-    with open(join(os.getcwd(), 'node_flags.json'), 'w') as f:
+    with open('node_flags.json', 'w') as f:
         json.dump(flags, f)
