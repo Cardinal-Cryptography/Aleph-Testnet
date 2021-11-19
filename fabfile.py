@@ -1,8 +1,11 @@
 '''Routines called by fab. Assumes that all are called from */experiments/aws.'''
-
-from subprocess import call
-from fabric import task
+import json
+from itertools import chain
 from os import remove
+from subprocess import call
+
+from fabric import task
+
 
 # ======================================================================================
 #                                   setup
@@ -142,8 +145,8 @@ def pid_to_auth(pid):
         return f.readlines()[int(pid)][:-1]
 
 
-@ task
-def create_dispatch_cmd(conn,  pid):
+@task
+def create_dispatch_cmd(conn, pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
@@ -157,25 +160,38 @@ def create_dispatch_cmd(conn,  pid):
             f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
     reserved_nodes = " ".join(reserved_nodes)
 
-    cmd = f'/home/ubuntu/aleph-node '\
-        '--validator '\
-        '--chain chainspec.json '\
-        f'--base-path data/{auth} '\
-        '--rpc-port 9933 '\
-        '--ws-port 9944 '\
-        '--port 30334 '\
-        '--execution Native '\
-        '--prometheus-external '\
-        '--prometheus-port 9615 '\
-        '--no-telemetry '\
-        '--rpc-cors all '\
-        '--unsafe-ws-external '\
-        '--rpc-methods Safe '\
-        f'--node-key-file data/{auth}/p2p_secret '\
-        f'--reserved-nodes {reserved_nodes} '\
-        '-lafa=debug '\
-        '-lAlephBFT-creator=trace '\
-        f'2> {pid}.log'
+    no_val_flags = [
+        '--validator',
+        '--prometheus-external',
+        '--no-telemetry',
+        '--unsafe-ws-external',
+    ]
+    debug_flags = [
+        '-lafa=debug',
+        '-lAlephBFT-creator=trace',
+    ]
+    val_flags = {
+        '--chain': 'chainspec.json',
+        '--base-path': f'data/{auth}',
+        '--rpc-port': '9933',
+        '--ws-port': '9944',
+        '--port': '30334',
+        '--execution': 'Native',
+        '--prometheus-port': '9615',
+        '--rpc-cors': 'all',
+        '--rpc-methods': 'Safe',
+        '--node-key-file': f'data/{auth}/p2p_secret',
+        '--reserved-nodes': reserved_nodes,
+    }
+
+    with open('node_flags.json', 'r') as f:
+        custom_val_flags = json.load(f)
+
+    val_flags.update(custom_val_flags)
+    val_flags = [f'{key} {val}' for (key, val) in val_flags.items()]
+
+    flags = " ".join(chain(no_val_flags, val_flags, debug_flags))
+    cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
 
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
