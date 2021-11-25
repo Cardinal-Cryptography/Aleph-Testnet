@@ -8,7 +8,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 echo installed nvm > setup_flooder.log
 
-git clone -b for_testnet-rebased https://github.com/fixxxedpoint/sub-flood.git
+git clone -b master https://github.com/cardinal-cryptography/sub-flood.git
 echo cloned repo >> setup_flooder.log
 cd sub-flood
 
