@@ -252,8 +252,9 @@ def upgrade_binary(conn):
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
+
 # ======================================================================================
-#                                       flooder
+#                                       type-script flooder
 # ======================================================================================
 
 

@@ -448,9 +448,6 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
     nhpr = n_parties_per_regions(n_flooders, regions)
     launch_new_instances(nhpr, instance_type, 8, flood_tag)
 
-    color_print('waiting for transition from pending to running')
-    wait('running', regions, flood_tag)
-
     color_print('waiting till ports are open on machines')
     wait('open 22', regions, flood_tag)
 
