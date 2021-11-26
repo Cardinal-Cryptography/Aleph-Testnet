@@ -167,6 +167,7 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
         if pids is None:
             cmd = pcmd + ' {} ' + task + ' ::: ' + hosts
         else:
+            pids = [str(pid) for pid in pids]
             cmd = pcmd + ' {1} ' + task + ' --pid={2} ::: ' + \
                 hosts + ' :::+ ' + ' '.join(pids)
     else:
@@ -435,6 +436,28 @@ def upgrade_binary(regions, tag='dev', delay=0):
         else:
             input("to proceed, press any key")
 
+
+def prepare_accounts(region, tag):
+    ip = instances_ip_in_region(region, tag)[0]
+    run_task_for_ip('prepare-accounts', [ip], False)
+
+
+def setup_flooder(n_flooders, regions, instance_type, tag):
+    flood_tag = tag+"-flood"
+
+    nhpr = n_parties_per_regions(n_flooders, regions)
+    launch_new_instances(nhpr, instance_type, 8, flood_tag)
+
+    color_print('waiting till ports are open on machines')
+    wait('open 22', regions, flood_tag)
+
+    run_task('setup-flooder', regions, True, flood_tag)
+
+    ip_list = instances_ip(regions, True, tag)
+    ip_list += instances_ip(regions, True, flood_tag)
+
+    # add flood machines to nodes firewall
+    allow_traffic(regions, ip_list, True, tag)
 
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
                          volume_size=8, tag='dev', **chain_flags):

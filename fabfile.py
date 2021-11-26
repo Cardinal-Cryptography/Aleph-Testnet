@@ -16,6 +16,7 @@ from fabric import task
 def setup(conn):
     conn.run('sudo apt update', hide='both')
     conn.run('sudo apt install -y zip unzip dtach', hide='both')
+    conn.run('sudo sh -c "echo core >/proc/sys/kernel/core_pattern"', hide='both')
 
 
 @task
@@ -67,7 +68,9 @@ def update_node_image(conn):
 
 @task
 def get_logs(conn, pid):
-    conn.run(f'zip {pid}.log.zip /home/ubuntu/{pid}.log')
+    conn.run(f'cp /home/ubuntu/{pid}.log node{pid}.log')
+    conn.run(f'zip {pid}.log.zip node{pid}.log')
+    conn.run(f'rm node{pid}.log')
     conn.get(f'/home/ubuntu/{pid}.log.zip', 'logs/')
 
 
@@ -197,19 +200,28 @@ def create_dispatch_cmd(conn, pid):
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
 
 
-@ task
+@task
 def purge(conn, pid):
     auth = pid_to_auth(pid)
     conn.run(
         f'/home/ubuntu/aleph-node purge-chain --base-path data/{auth} --chain chainspec.json -y')
 
 
-@ task
+@task
 def dispatch(conn):
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
-@ task
+@task
+def run_prometheus_exporter(conn):
+    install_cmd = f'wget https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz;' \
+        'tar xvfz node_exporter-*.*-amd64.tar.gz; '
+    conn.run(install_cmd)
+    run_cmd = f'./node_exporter-*.*-amd64/node_exporter'
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_cmd}')
+
+
+@task
 def stop_world(conn):
     ''' Kills the committee member.'''
     conn.run('killall -9 aleph-node')
@@ -239,6 +251,94 @@ def upgrade_binary(conn):
 
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
+
+
+# ======================================================================================
+#                                       type-script flooder
+# ======================================================================================
+
+
+@task
+def setup_flooder(conn):
+    conn.put('nvm.sh', '/home/ubuntu/')
+    conn.run('bash nvm.sh')
+
+
+@task
+def prepare_accounts(conn):
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[0].strip()
+
+    nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
+    '''
+    --max-old-space-size=4096 - heap size
+    --scale=3000 - number of accounts
+    --loops-count=0 - no additional txs
+    --only_flooding=true - no stats gathering
+    '''
+    prepare = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
+        '--finalization_timeout=20000 '\
+        '--scale=10000 '\
+        '--total_transactions=0 '\
+        '--only_flooding=true '\
+        '--loops_count=0 '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri="{sudo_sk}" '\
+        '1>prepare_accounts.log 2>&1'
+    conn.run(nvm+prepare)
+
+
+@task
+def run_flooder(conn, pid):
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[int(pid)].strip()
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+
+    nvm = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && '
+    pid = int(pid)
+
+    '''
+    --starting_account - id of account from which to start
+    --scale=500 - number of tx to send. scale * n_flooders has to be <= scale from above
+    '''
+    run_cmd = 'node --max-old-space-size=4096 sub-flood/dist/index.js '\
+        f'--starting_account={pid*1000} '\
+        '--finalization_timeout=20000 '\
+        '--scale=2000 '\
+        '--total_transactions=20000 '\
+        '--only_flooding=true '\
+        '--accelerate=100 '\
+        '--loops_count=4000000  '\
+        '--initial_speed=1 '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri="{sudo_sk}" '\
+        '2>flooder.log'
+    conn.run(nvm+run_cmd)
+
+
+@task
+def monitor_flood(conn):
+    with open('addresses', 'r') as f:
+        addr = f.readlines()[-1].strip()
+    with open('accounts/sudo_sk', 'r') as f:
+        sudo_sk = f.readline().strip()
+
+    cmd = 'node --max-old-space-size=4096 dist/index.js '\
+        '--finalization_timeout=20000 '\
+        '--scale=1 '\
+        '--total_transactions=1 '\
+        '--total_threads=1 '\
+        '--keep_collecting_stats=true '\
+        '--only_flooding=true '\
+        '--loops_count=0 '\
+        f'--url="ws://{addr}:9944" '\
+        f'--root_account_uri={sudo_sk} '\
+        '1>./flood.log 2>&1'
+
+    conn.run(cmd)
 
 
 # ======================================================================================
@@ -274,7 +374,7 @@ def send_chainspec(conn):
     conn.put('chainspec.json', '.')
 
 
-@ task
+@task
 def test(conn):
     ''' Tests if connection is ready '''
 
