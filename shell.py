@@ -524,6 +524,8 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
     save_node_flags(node_flags or dict())
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
+    run_task('install-prometheus-exporter', regions, parallel, tag)
+
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
                     node_flags=None, chain_flags=None):
