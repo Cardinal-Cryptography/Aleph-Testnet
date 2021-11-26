@@ -209,16 +209,16 @@ def purge(conn, pid):
 
 @task
 def dispatch(conn):
+    run_node_exporter_cmd = f'./node_exporter-*.*-amd64/node_exporter'
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_node_exporter_cmd}')
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
 @task
-def run_prometheus_exporter(conn):
+def install_prometheus_exporter(conn):
     install_cmd = f'wget https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz;' \
         'tar xvfz node_exporter-*.*-amd64.tar.gz; '
     conn.run(install_cmd)
-    run_cmd = f'./node_exporter-*.*-amd64/node_exporter'
-    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_cmd}')
 
 
 @task
