@@ -1,5 +1,6 @@
 '''This is a shell for orchestrating experiments on AWS EC 2'''
 import os
+import shutil
 
 from functools import partial
 from subprocess import run, call
@@ -506,6 +507,14 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
     color_print(f'establishing the environment took {round(time() - start, 2)}s')
 
     return pids
+
+
+def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
+    os.makedirs('bin', exist_ok=True)
+    shutil.copy(flooder_binary, 'bin/flooder')
+
+    color_print('send-flooder')
+    run_task('send-flooder-binary', regions, True, tag)
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
