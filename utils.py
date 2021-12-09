@@ -294,7 +294,20 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     return account_ids
 
 
-def bootstrap_chain(account_ids, chain, **custom_flags):
+def generate_account_from_seed(seed):
+    cmd = f'./bin/aleph-node key inspect //{seed} --output-type json'
+
+    jsons = run(cmd.split(), capture_output=True)
+    creds = json.loads(jsons.stdout)
+
+    return creds['ss58PublicKey']
+
+
+def generate_accounts_from_seeds(seeds):
+    return [generate_account_from_seed(seed) for seed in seeds]
+
+
+def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
@@ -331,6 +344,10 @@ def bootstrap_chain(account_ids, chain, **custom_flags):
 
     prepare_vesting(chainspec)
 
+    if benchmark_config is not None:
+        prepare_benchmark_accounts(chainspec, benchmark_config.n_of_accounts,
+                                  benchmark_config.azero_amount)
+
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
 
@@ -357,6 +374,19 @@ def prepare_vesting(chainspec):
     rtm = chainspec['genesis']['runtime']
     rtm['balances']['balances'] += balances
     rtm['vesting']['vesting'] = vesting
+
+
+def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
+    bench_accounts = generate_accounts_from_seeds((str(i) for i in range(n_of_accounts)))
+    balances = []
+    azero = 1000000000000
+    amount = azero_amount * azero
+
+    for i, aid in enumerate(bench_accounts):
+        balances.append((aid, amount))
+
+    rtm = chainspec['genesis']['runtime']
+    rtm['balances']['balances'] += balances
 
 
 def generate_p2p_keys(account_ids):

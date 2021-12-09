@@ -460,7 +460,7 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
     allow_traffic(regions, ip_list, True, tag)
 
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                         volume_size=8, tag='dev', **chain_flags):
+                         volume_size=8, tag='dev', benchmark_config=None, **chain_flags):
     start = time()
     parallel = n_parties > 1
 
@@ -488,7 +488,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     validators = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain, **chain_flags)
+    bootstrap_chain(validators, chain, benchmark_config=benchmark_config, **chain_flags)
     generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
