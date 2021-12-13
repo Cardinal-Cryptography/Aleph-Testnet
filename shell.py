@@ -509,12 +509,12 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                node_flags=None, chain_flags=None):
+                node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructure(
-        n_parties, chain, regions, instance_type, volume_size, tag, **(chain_flags or dict()))
+        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, **(chain_flags or dict()))
 
     parallel = n_parties > 1
 
@@ -528,7 +528,7 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
 
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                    node_flags=None, chain_flags=None):
+                    node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 

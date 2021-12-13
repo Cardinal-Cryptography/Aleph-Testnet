@@ -345,8 +345,8 @@ def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
     prepare_vesting(chainspec)
 
     if benchmark_config is not None:
-        prepare_benchmark_accounts(chainspec, benchmark_config.n_of_accounts,
-                                  benchmark_config.azero_amount)
+        prepare_benchmark_accounts(chainspec, benchmark_config['n_of_accounts'],
+                                  benchmark_config['azero_amount'])
 
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
