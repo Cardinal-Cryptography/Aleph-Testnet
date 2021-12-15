@@ -9,7 +9,7 @@ import boto3
 
 
 def azero():
-    return 1e12
+    return int(1e12)
 
 def image_id_in_region(region_name, image_name='testnet1'):
     '''Find id of os image we use. The id may differ for different regions'''
