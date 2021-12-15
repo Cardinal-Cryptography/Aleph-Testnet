@@ -8,6 +8,9 @@ from subprocess import run
 import boto3
 
 
+def azero():
+    return 1e12
+
 def image_id_in_region(region_name, image_name='testnet1'):
     '''Find id of os image we use. The id may differ for different regions'''
 
@@ -357,13 +360,12 @@ def prepare_vesting(chainspec):
                                         'accounts/vested_aids')
     balances = []
     vesting = []
-    azero = 1000000000000
-    hundred_azero = 100 * azero
+    hundred_azero = 100 * azero()
     day = 86400
     for i, aid in enumerate(vested_accounts[:12]):
         mod = i+1
         balances.append((aid, hundred_azero))
-        vesting.append((aid, mod, mod*day, mod*azero))
+        vesting.append((aid, mod, mod*day, mod*azero()))
 
     month = 2592000
     for i, aid in enumerate(vested_accounts[12:]):
@@ -379,8 +381,7 @@ def prepare_vesting(chainspec):
 def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
     bench_accounts = generate_accounts_from_seeds((str(i) for i in range(n_of_accounts)))
     balances = []
-    azero = 1000000000000
-    amount = azero_amount * azero
+    amount = azero_amount * azero()
 
     for i, aid in enumerate(bench_accounts):
         balances.append((aid, amount))
