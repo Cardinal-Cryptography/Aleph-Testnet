@@ -379,11 +379,14 @@ def prepare_vesting(chainspec):
 
 
 def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
+    n_of_accounts = int(n_of_accounts)
+    azero_amount = int(azero_amount)
+
     bench_accounts = generate_accounts_from_seeds((str(i) for i in range(n_of_accounts)))
     balances = []
     amount = azero_amount * azero()
 
-    for i, aid in enumerate(bench_accounts):
+    for aid in bench_accounts:
         balances.append((aid, amount))
 
     rtm = chainspec['genesis']['runtime']
