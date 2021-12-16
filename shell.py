@@ -535,15 +535,45 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
 
     run_task('install-prometheus-exporter', regions, parallel, tag)
 
+    return pids
+
+
+def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(), tag='dev'):
+    n_of_accounts = int(benchmark_config.get('n_of_accounts', 1000))
+    flooder_binary = benchmark_config.get('flooder_binary', 'bin/flooder')
+    transactions = int(benchmark_config.get('transactions', 1000))
+    throughput = int(benchmark_config.get('throughput', 1000))
+
+    script = '#!/usr/bin/env bash\n' \
+                'pid="$1"\n' \
+                f'first_account=$((pid*{(n_of_accounts // n_parties)}))\n' \
+                f'RUST_LOG=info ./flooder --nodes localhost:9944' \
+                f' --transactions={transactions}' \
+                f' --throughput={throughput}' \
+                ' --first_account_in_range="$first_account"\n'
+
+    with open('bin/flooder_script.sh', 'w') as f:
+        f.write(script)
+
+    color_print('send-flooder-script')
+    run_task('send-flooder-script', regions, True, tag)
+
+    send_flooder_to_nodes(flooder_binary, regions, tag)
+
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
                     node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
-    setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, chain_flags)
+    pids = setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, chain_flags)
 
     allow_all_traffic(regions, tag)
+
+    if benchmark_config is not None:
+        prepare_benchmark_script(benchmark_config, n_parties, regions, tag)
+
+    return pids
 
 
 def setup_flooding(region=default_region(), tag='flooders'):

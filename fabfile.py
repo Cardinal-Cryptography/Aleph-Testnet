@@ -353,7 +353,21 @@ def send_flooder_binary(conn):
 
 
 @task
-def start_flooding(conn):
+def send_flooder_script(conn):
+    # 1. Send script
+    conn.put('bin/flooder_script.sh', '.')
+    
+    # 2. add exec permissions
+    conn.run('chmod +x ./flooder_script.sh')
+
+
+@task 
+def start_flooding(conn, pid):
+    conn.run(f'./flooder_script.sh {pid} > flood.log 2> flood.error')
+
+
+@task
+def _start_flooding(conn):
     # 1. Send script
     conn.put('bin/flooder_script.sh', '.')
     
