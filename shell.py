@@ -550,7 +550,7 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
                 f'RUST_LOG=info ./flooder --nodes localhost:9944' \
                 f' --transactions={transactions}' \
                 f' --throughput={throughput}' \
-                ' --first_account_in_range="$first_account"\n'
+                ' --first-account-in-range="$first_account"\n'
 
     with open('bin/flooder_script.sh', 'w') as f:
         f.write(script)
