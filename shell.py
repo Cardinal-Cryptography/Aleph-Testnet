@@ -540,16 +540,15 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
 
 def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(), tag='dev'):
     n_of_accounts = int(benchmark_config.get('n_of_accounts', 1000))
-    flooder_binary = benchmark_config.get('flooder_binary', 'bin/flooder')
+    flooder_binary = benchmark_config.get('flooder_binary', 'flooder')
     transactions = int(benchmark_config.get('transactions', 1000))
-    throughput = int(benchmark_config.get('throughput', 1000))
 
     script = '#!/usr/bin/env bash\n' \
                 'pid="$1"\n' \
                 f'first_account=$((pid*{(n_of_accounts // n_parties)}))\n' \
                 f'RUST_LOG=info ./flooder --nodes localhost:9944' \
                 f' --transactions={transactions}' \
-                f' --throughput={throughput}' \
+                ' --skip-initialization'\
                 ' --first-account-in-range="$first_account"\n'
 
     with open('bin/flooder_script.sh', 'w') as f:
@@ -566,7 +565,7 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
-    pids = setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, chain_flags)
+    pids = setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, benchmark_config, chain_flags)
 
     allow_all_traffic(regions, tag)
 
