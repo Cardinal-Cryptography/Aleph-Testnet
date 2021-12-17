@@ -4,8 +4,10 @@ import json
 import os
 from pathlib import Path
 from subprocess import run
+from bip_utils import SubstrateBip39SeedGenerator, SubstrateCoins, Substrate
 
 import boto3
+
 
 
 def azero():
@@ -297,17 +299,15 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     return account_ids
 
 
-def generate_account_from_seed(seed):
-    cmd = f'./bin/aleph-node key inspect //{seed} --output-type json'
-
-    jsons = run(cmd.split(), capture_output=True)
-    creds = json.loads(jsons.stdout)
-
-    return creds['ss58PublicKey']
+def derive_account_from_seed(seed, path):
+    substrate_ctx = Substrate.FromSeedAndPath(seed, f'//{path}', SubstrateCoins.GENERIC)
+    return substrate_ctx.PublicKey().ToAddress()
 
 
-def generate_accounts_from_seeds(seeds):
-    return [generate_account_from_seed(seed) for seed in seeds]
+def generate_accounts_from_paths(paths):
+    seed_bytes = SubstrateBip39SeedGenerator("bottom drive obey lake curtain smoke basket hold race lonely fit walk").Generate()
+    
+    return (derive_account_from_seed(seed_bytes, path) for path in paths)
 
 
 def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
@@ -382,15 +382,13 @@ def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
     n_of_accounts = int(n_of_accounts)
     azero_amount = int(azero_amount)
 
-    bench_accounts = generate_accounts_from_seeds((str(i) for i in range(n_of_accounts)))
-    balances = []
+    bench_accounts = generate_accounts_from_paths((str(i) for i in range(n_of_accounts)))
+    
     amount = azero_amount * azero()
-
-    for aid in bench_accounts:
-        balances.append((aid, amount))
+    balances = ((aid, amount) for aid in bench_accounts)
 
     rtm = chainspec['genesis']['runtime']
-    rtm['balances']['balances'] += balances
+    rtm['balances']['balances'] += list(balances)
 
 
 def generate_p2p_keys(account_ids):
