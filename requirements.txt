@@ -4,8 +4,5 @@ ipython
 tqdm
 matplotlib
 joblib
-<<<<<<< HEAD
 bip-utils
-=======
 shutil
->>>>>>> Send flooder to all instances (#22)
