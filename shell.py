@@ -460,6 +460,7 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
     # add flood machines to nodes firewall
     allow_traffic(regions, ip_list, True, tag)
 
+
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
                          volume_size=8, tag='dev', benchmark_config=None, **chain_flags):
     start = time()
@@ -489,7 +490,8 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     validators = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain, benchmark_config=benchmark_config, **chain_flags)
+    bootstrap_chain(validators, chain,
+                    benchmark_config=benchmark_config, **chain_flags)
     generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
@@ -504,7 +506,8 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
     color_print('start nginx')
     run_task('run-nginx', regions, parallel, tag)
 
-    color_print(f'establishing the environment took {round(time() - start, 2)}s')
+    color_print(
+        f'establishing the environment took {round(time() - start, 2)}s')
 
     return pids
 
@@ -544,12 +547,12 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
     transactions = int(benchmark_config.get('transactions', 1000))
 
     script = '#!/usr/bin/env bash\n' \
-                'pid="$1"\n' \
-                f'first_account=$((pid*{(n_of_accounts // n_parties)}))\n' \
-                f'RUST_LOG=info ./flooder --nodes localhost:9944' \
-                f' --transactions={transactions}' \
-                ' --skip-initialization'\
-                ' --first-account-in-range="$first_account"\n'
+        'pid="$1"\n' \
+        f'first_account=$((pid*{(n_of_accounts // n_parties)}))\n' \
+        f'RUST_LOG=info ./flooder --nodes localhost:9944' \
+        f' --transactions={transactions}' \
+        ' --skip-initialization'\
+        ' --first-account-in-range="$first_account"\n'
 
     with open('bin/flooder_script.sh', 'w') as f:
         f.write(script)
@@ -565,7 +568,8 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
-    pids = setup_nodes(n_parties, chain, regions, instance_type, volume_size, tag, node_flags, benchmark_config, chain_flags)
+    pids = setup_nodes(n_parties, chain, regions, instance_type,
+                       volume_size, tag, node_flags, benchmark_config, chain_flags)
 
     allow_all_traffic(regions, tag)
 
