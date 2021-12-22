@@ -4,9 +4,14 @@ import json
 import os
 from pathlib import Path
 from subprocess import run
+from bip_utils import SubstrateBip39SeedGenerator, SubstrateCoins, Substrate
 
 import boto3
 
+
+
+def azero():
+    return int(1e12)
 
 def image_id_in_region(region_name, image_name='testnet1'):
     '''Find id of os image we use. The id may differ for different regions'''
@@ -294,7 +299,18 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
     return account_ids
 
 
-def bootstrap_chain(account_ids, chain, **custom_flags):
+def derive_account_from_seed(seed, path):
+    substrate_ctx = Substrate.FromSeedAndPath(seed, f'//{path}', SubstrateCoins.GENERIC)
+    return substrate_ctx.PublicKey().ToAddress()
+
+
+def generate_accounts_from_paths(paths):
+    seed_bytes = SubstrateBip39SeedGenerator("bottom drive obey lake curtain smoke basket hold race lonely fit walk").Generate()
+    
+    return (derive_account_from_seed(seed_bytes, path) for path in paths)
+
+
+def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
@@ -331,6 +347,10 @@ def bootstrap_chain(account_ids, chain, **custom_flags):
 
     prepare_vesting(chainspec)
 
+    if benchmark_config is not None:
+        prepare_benchmark_accounts(chainspec, benchmark_config['n_of_accounts'],
+                                  benchmark_config['azero_amount'])
+
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
 
@@ -340,13 +360,12 @@ def prepare_vesting(chainspec):
                                         'accounts/vested_aids')
     balances = []
     vesting = []
-    azero = 1000000000000
-    hundred_azero = 100 * azero
+    hundred_azero = 100 * azero()
     day = 86400
     for i, aid in enumerate(vested_accounts[:12]):
         mod = i+1
         balances.append((aid, hundred_azero))
-        vesting.append((aid, mod, mod*day, mod*azero))
+        vesting.append((aid, mod, mod*day, mod*azero()))
 
     month = 2592000
     for i, aid in enumerate(vested_accounts[12:]):
@@ -357,6 +376,19 @@ def prepare_vesting(chainspec):
     rtm = chainspec['genesis']['runtime']
     rtm['balances']['balances'] += balances
     rtm['vesting']['vesting'] = vesting
+
+
+def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
+    n_of_accounts = int(n_of_accounts)
+    azero_amount = int(azero_amount)
+
+    bench_accounts = generate_accounts_from_paths((str(i) for i in range(n_of_accounts)))
+    
+    amount = azero_amount * azero()
+    balances = ((aid, amount) for aid in bench_accounts)
+
+    rtm = chainspec['genesis']['runtime']
+    rtm['balances']['balances'] += list(balances)
 
 
 def generate_p2p_keys(account_ids):

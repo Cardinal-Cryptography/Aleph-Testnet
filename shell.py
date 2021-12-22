@@ -461,7 +461,7 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
     allow_traffic(regions, ip_list, True, tag)
 
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                         volume_size=8, tag='dev', **chain_flags):
+                         volume_size=8, tag='dev', benchmark_config=None, **chain_flags):
     start = time()
     parallel = n_parties > 1
 
@@ -489,7 +489,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     validators = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain, **chain_flags)
+    bootstrap_chain(validators, chain, benchmark_config=benchmark_config, **chain_flags)
     generate_p2p_keys(validators)
 
     color_print('waiting till ports are open on machines')
@@ -518,12 +518,12 @@ def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                node_flags=None, chain_flags=None):
+                node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructure(
-        n_parties, chain, regions, instance_type, volume_size, tag, **(chain_flags or dict()))
+        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, **(chain_flags or dict()))
 
     parallel = n_parties > 1
 
@@ -537,7 +537,7 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
 
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                    node_flags=None, chain_flags=None):
+                    node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
