@@ -353,6 +353,12 @@ def send_flooder_binary(conn):
 
 
 @task
+def send_txs(conn):
+    # 1. send txs file
+    send_zip(conn, 'txs.zip', 'bin/txs')
+
+
+@task
 def start_flooding(conn):
     # 1. Send script
     conn.put('bin/flooder_script.sh', '.')

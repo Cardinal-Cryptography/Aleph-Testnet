@@ -517,6 +517,14 @@ def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
     run_task('send-flooder-binary', regions, True, tag)
 
 
+def send_txs_to_nodes(txs_file, regions=use_regions(), tag='dev'):
+    os.makedirs('bin', exist_ok=True)
+    shutil.copy(txs_file, 'bin/txs')
+
+    color_print('send-txs')
+    run_task('send-txs', regions, True, tag)
+
+
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
                 node_flags=None, benchmark_config=None, chain_flags=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
