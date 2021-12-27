@@ -545,6 +545,7 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
     n_of_accounts = int(benchmark_config.get('n_of_accounts', 1000))
     flooder_binary = benchmark_config.get('flooder_binary', 'flooder')
     transactions = int(benchmark_config.get('transactions', 1000))
+    rate_limiting = benchmark_config.get('rate_limiting', None)
 
     script = '#!/usr/bin/env bash\n' \
         'pid="$1"\n' \
@@ -552,7 +553,13 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
         f'RUST_LOG=info ./flooder --nodes localhost:9944' \
         f' --transactions={transactions}' \
         ' --skip-initialization'\
-        ' --first-account-in-range="$first_account"\n'
+        ' --first-account-in-range="$first_account"'
+
+    if rate_limiting is not None:
+        transactions_in_interval, interval_secs = rate_limiting
+        script += f' --transactions-in-interval={transactions_in_interval} --interval-secs={interval_secs}'
+
+    script += '\n'
 
     with open('bin/flooder_script.sh', 'w') as f:
         f.write(script)
