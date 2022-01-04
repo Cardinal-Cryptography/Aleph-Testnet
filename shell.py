@@ -72,6 +72,7 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name,
                                      }, ],
                                      KeyName=key_name,
                                      Monitoring={'Enabled': False},
+                                     InstanceInitiatedShutdownBehavior='terminate',
                                      TagSpecifications=[
                                          {
                                              'ResourceType': 'instance',
@@ -459,7 +460,7 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
 
 
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                         volume_size=8, tag='dev', benchmark_config=None, **chain_flags):
+                         volume_size=8, tag='dev', benchmark_config=None, terminate_in_min=None, **chain_flags):
     start = time()
     parallel = n_parties > 1
 
@@ -506,6 +507,12 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
     color_print(
         f'establishing the environment took {round(time() - start, 2)}s')
 
+    if terminate_in_min is not None:
+        color_print('schedule termination')
+        with open('bin/terminate', 'w') as f:
+            f.write(f'{terminate_in_min}')
+        run_task('schedule-termination', regions, parallel, tag)
+
     return pids
 
 
@@ -518,12 +525,12 @@ def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                node_flags=None, benchmark_config=None, chain_flags=None):
+                node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructure(
-        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, **(chain_flags or dict()))
+        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, terminate_in_min, **(chain_flags or dict()))
 
     parallel = n_parties > 1
 
@@ -568,12 +575,12 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
 
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                    node_flags=None, benchmark_config=None, chain_flags=None):
+                    node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=60):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
     pids = setup_nodes(n_parties, chain, regions, instance_type,
-                       volume_size, tag, node_flags, benchmark_config, chain_flags)
+                       volume_size, tag, node_flags, benchmark_config, chain_flags, terminate_in_min)
 
     allow_all_traffic(regions, tag)
 
