@@ -72,9 +72,6 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name,
                                      }, ],
                                      KeyName=key_name,
                                      Monitoring={'Enabled': False},
-                                     IamInstanceProfile={
-                                         'Arn': 'arn:aws:iam::436875894086:instance-profile/EC2DockerCloudwatchLogs'
-                                     },
                                      TagSpecifications=[
                                          {
                                              'ResourceType': 'instance',
