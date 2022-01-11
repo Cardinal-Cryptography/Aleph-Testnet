@@ -2,12 +2,11 @@
 
 import json
 import os
+from typing import List
 from pathlib import Path
 from subprocess import run
 from bip_utils import SubstrateBip39SeedGenerator, SubstrateCoins, Substrate
-
 import boto3
-
 
 
 def azero():

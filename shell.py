@@ -637,6 +637,9 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_region=de
     color_print('waiting till ports are open on machines')
     wait('open 22', [region], tag)
 
+    color_print('setup')
+    run_task('setup', regions=[region], parallel=False, tag=tag)
+
     print('creating prometheus.yml configuration file')
     config = create_prometheus_configuration(ips)
     with open('prometheus.yml', 'w') as yml_file:
@@ -645,5 +648,5 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_region=de
     color_print('sending prometheus.yml configuration file')
     run_task('send-prometheus-config', regions=[region], parallel=False, tag=tag)
 
-    color_print('start prometheus')
-    run_task('run-prometheus', regions=[region], parallel=False, tag=tag)
+    color_print('intalling prometheus')
+    run_task('install-prometheus', regions=[region], parallel=False, tag=tag)
