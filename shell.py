@@ -12,6 +12,7 @@ import boto3
 from utils import *
 
 import warnings
+import yaml
 warnings.filterwarnings(action='ignore', module='.*paramiko.*')
 
 N_JOBS = 12
@@ -622,3 +623,27 @@ def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
     run_task('run-docker-compose', regions, parallel, False, pids)
 
     instances_state(testnet_regions(), 'testnet')
+
+
+def setup_prometheus(region=default_region(), tag='prometheus', target_region=default_region(), target_tag="dev"):
+    color_print('retrieving target ips')
+    ips = instances_ip_in_region(region_name=target_region, tag=target_tag)
+    print('target ips:', ips)
+
+    color_print('launching instance')
+    launch_new_instances_in_region(n_parties=1, region_name=region, tag=tag)
+    print('prometheus ip:', instances_ip_in_region(region_name=region, tag=tag))
+
+    color_print('waiting till ports are open on machines')
+    wait('open 22', [region], tag)
+
+    print('creating prometheus.yml configuration file')
+    config = create_prometheus_configuration(ips)
+    with open('prometheus.yml', 'w') as yml_file:
+        yaml.dump(config, yml_file)
+
+    color_print('sending prometheus.yml configuration file')
+    run_task('send-prometheus-config', regions=[region], parallel=False, tag=tag)
+
+    color_print('start prometheus')
+    run_task('run-prometheus', regions=[region], parallel=False, tag=tag)

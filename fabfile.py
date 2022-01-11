@@ -209,8 +209,7 @@ def purge(conn, pid):
 
 @task
 def dispatch(conn):
-    run_node_exporter_cmd = f'./node_exporter-*.*-amd64/node_exporter'
-    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_node_exporter_cmd}')
+    run_node_exporter(conn)
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
 
@@ -219,6 +218,24 @@ def install_prometheus_exporter(conn):
     install_cmd = f'wget https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz;' \
         'tar xvfz node_exporter-*.*-amd64.tar.gz; '
     conn.run(install_cmd)
+
+@task
+def install_prometheus(conn):
+    download_cmd = f'wget https://github.com/prometheus/prometheus/releases/download/v2.32.1/prometheus-2.32.1.linux-amd64.tar.gz'
+    install_cmd = f'set -e; mkdir prometheus; cd prometheus; {download_cmd};' \
+        'tar xvfz prometheus*.tar.gz'
+    conn.run(install_cmd)
+
+
+@task
+def send_prometheus_config(conn):
+    conn.put('prometheus.yml', '.')
+
+
+@task
+def run_prometheus(conn):
+    prometheus_cmd = f'dtach -n `mktemp -u /tmp/dtach.XXXX` prometheus/prometheus-*.*-amd64/prometheus --config.file prometheus.yml'
+    conn.run(prometheus_cmd)
 
 
 @task
@@ -414,3 +431,8 @@ def send_zip(conn, file, zip_file):
     call(cmd.split())
     conn.put(f'{zip_file}', '.')
     conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+
+
+def run_node_exporter(conn):
+    run_node_exporter_cmd = f'./node_exporter-*.*-amd64/node_exporter'
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_node_exporter_cmd}')

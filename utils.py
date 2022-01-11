@@ -478,3 +478,26 @@ def fab_cmd():
 def save_node_flags(flags):
     with open('node_flags.json', 'w') as f:
         json.dump(flags, f)
+
+
+def convert_to_targets(ips: List[str]) -> List[str]:
+    return [f'{ip}:9615' for ip in ips]
+
+
+def convert_to_node_targets(ips: List[str]) -> List[str]:
+    return [f'{ip}:9100' for ip in ips]
+
+
+def create_prometheus_configuration(ips: List[str]):
+    targets = convert_to_targets(ips)
+    node_targets = convert_to_node_targets(ips)
+
+    return {'scrape_configs': [{
+        'job_name': 'aleph-nodes',
+        'scrape_interval': '5s',
+        'static_configs': [{'targets': targets}]
+    }, {
+        'job_name': 'node',
+        'scrape_interval': '5s',
+        'static_configs': [{'targets': node_targets }]
+    }]}
