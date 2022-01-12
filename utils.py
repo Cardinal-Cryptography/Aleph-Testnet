@@ -479,17 +479,14 @@ def save_node_flags(flags):
         json.dump(flags, f)
 
 
-def convert_to_targets(ips: List[str]) -> List[str]:
-    return [f'{ip}:9615' for ip in ips]
-
-
-def convert_to_node_targets(ips: List[str]) -> List[str]:
-    return [f'{ip}:9100' for ip in ips]
+def convert_to_targets(ips: List[str], port: int) -> List[str]:
+    port = str(port)
+    return [f'{ip}:{port}' for ip in ips]
 
 
 def create_prometheus_configuration(ips: List[str]):
-    targets = convert_to_targets(ips)
-    node_targets = convert_to_node_targets(ips)
+    targets = convert_to_targets(ips, port=9615)
+    node_targets = convert_to_targets(ips, port=9100)
 
     return {'scrape_configs': [{
         'job_name': 'aleph-nodes',
