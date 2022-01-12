@@ -625,9 +625,9 @@ def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
     instances_state(testnet_regions(), 'testnet')
 
 
-def setup_prometheus(region=default_region(), tag='prometheus', target_region=default_region(), target_tag="dev"):
+def setup_prometheus(region=default_region(), tag='prometheus', target_regions=use_regions(), target_tag="dev"):
     color_print('retrieving target ips')
-    ips = instances_ip_in_region(region_name=target_region, tag=target_tag)
+    ips = [ip for region in target_regions for ip in instances_ip_in_region(region_name=region, tag=target_tag)]
     print('target ips:', ips)
 
     color_print('launching instance')
@@ -640,7 +640,7 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_region=de
     color_print('setup')
     run_task('setup', regions=[region], parallel=False, tag=tag)
 
-    print('creating prometheus.yml configuration file')
+    color_print('creating prometheus.yml configuration file')
     config = create_prometheus_configuration(ips)
     with open('prometheus.yml', 'w') as yml_file:
         yaml.dump(config, yml_file)
