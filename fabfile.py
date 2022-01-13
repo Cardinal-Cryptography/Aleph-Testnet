@@ -395,6 +395,15 @@ def test(conn):
     conn.open()
 
 
+@task
+def schedule_termination(conn):
+    with open('bin/terminate', 'r') as f:
+        timeout = f.read()
+        conn.run('sudo apt install -y at', hide='both')
+
+        conn.run(f'echo "sudo shutdown -h now" | at now + {timeout} minutes')
+
+
 # ======================================================================================
 #                                        utils
 # ======================================================================================
