@@ -632,10 +632,11 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_regions=u
 
     color_print('launching instance')
     launch_new_instances_in_region(n_parties=1, region_name=region, tag=tag)
-    print('prometheus ip:', instances_ip_in_region(region_name=region, tag=tag))
 
     color_print('waiting till ports are open on machines')
     wait('open 22', [region], tag)
+
+    print('prometheus ip:', instances_ip_in_region(region_name=region, tag=tag))
 
     color_print('setup')
     run_task('setup', regions=[region], parallel=False, tag=tag)
