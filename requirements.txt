@@ -6,3 +6,4 @@ matplotlib
 joblib
 bip-utils
 shutil
+pyyaml
