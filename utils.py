@@ -309,6 +309,28 @@ def generate_accounts_from_paths(paths):
     return (derive_account_from_seed(seed_bytes, path) for path in paths)
 
 
+def bootstrap_nodes(account_ids, chain, **custom_flags):
+    ''' Create keys for a node. '''
+
+    cmd = ['./bin/aleph-node', 'bootstrap-node', '--base-path', 'data']
+    if chain == 'dev':
+        cmd += ['--chain-id', 'a0dnet1', '--n-members', f'{len(account_ids)}']
+    else:
+        flags = {
+            '--chain-id': 'a0tnet1',
+            '--chain-name': 'AlephZeroTestnet',
+            '--session-period': '900',
+            '--millisecs-per-block': '1000',
+            '--token-symbol': 'TZERO',
+        }
+        flags.update(custom_flags)
+
+        for (flag, value) in flags.items():
+            cmd += [f'{flag}', f'{value}']
+
+    for account_id in account_ids:
+        run(cmd + ['--account-id', f'{account_id}'])
+
 def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
     ''' Create the chain spec. '''
 

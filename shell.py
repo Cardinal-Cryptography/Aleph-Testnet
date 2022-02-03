@@ -492,6 +492,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
         n_parties, chain, 'validator_phrases', 'validator_accounts')
     bootstrap_chain(parties[:n_validators], chain,
                     benchmark_config=benchmark_config, **chain_flags)
+    bootstrap_nodes(parties[n_validators:], chain, **chain_flags)
     generate_p2p_keys(parties)
 
     color_print('waiting till ports are open on machines')
