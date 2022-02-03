@@ -153,15 +153,15 @@ def create_dispatch_cmd(conn, pid):
     ''' Runs the protocol.'''
 
     auth = pid_to_auth(pid)
-    reserved_nodes = []
+    libp2p_addresses = []
     with open("addresses", "r") as f:
         addresses = [addr.strip() for addr in f.readlines()]
     with open("libp2p_public_keys", "r") as f:
         keys = [key.strip() for key in f.readlines()]
-    for i, address in enumerate(addresses):
-        reserved_nodes.append(
-            f'/ip4/{address}/tcp/30334/p2p/{keys[i]}')
-    reserved_nodes = " ".join(reserved_nodes)
+    for address, key in zip(addresses, keys):
+        libp2p_addresses.append(
+            f'/ip4/{address}/tcp/30334/p2p/{key}')
+    bootnodes = " ".join(libp2p_addresses[-2:])
 
     no_val_flags = [
         '--validator',
@@ -171,7 +171,9 @@ def create_dispatch_cmd(conn, pid):
     ]
     debug_flags = [
         '-lafa=debug',
-        '-lAlephBFT-creator=trace',
+        '-laleph-network=trace',
+        '-laleph-party=debug',
+        '-lAlephBFT-creator=debug',
     ]
     val_flags = {
         '--chain': 'chainspec.json',
@@ -184,7 +186,7 @@ def create_dispatch_cmd(conn, pid):
         '--rpc-cors': 'all',
         '--rpc-methods': 'Safe',
         '--node-key-file': f'data/{auth}/p2p_secret',
-        '--reserved-nodes': reserved_nodes,
+        '--bootnodes': bootnodes,
     }
 
     with open('node_flags.json', 'r') as f:
