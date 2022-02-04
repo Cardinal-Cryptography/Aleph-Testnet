@@ -358,7 +358,7 @@ def run_task(task='test', regions=use_regions(), parallel=True, tag='dev', pids=
     :param bool parallel: indicates whether task should be dispatched in parallel
     '''
 
-    exec_for_regions(partial(run_task_in_region, task,
+    return exec_for_regions(partial(run_task_in_region, task,
                      parallel=parallel, tag=tag), regions, parallel, pids)
 
 
@@ -461,7 +461,8 @@ def setup_flooder(n_flooders, regions, instance_type, tag):
 
 
 def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro',
-                         volume_size=8, tag='dev', benchmark_config=None, terminate_in_min=None, **chain_flags):
+                         volume_size=8, tag='dev', benchmark_config=None, terminate_in_min=None, n_validators=None, **chain_flags):
+    n_validators = n_validators or n_parties
     start = time()
     parallel = n_parties > 1
 
@@ -487,23 +488,24 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     os.makedirs('data', exist_ok=True)
 
-    validators = generate_accounts(
+    parties = generate_accounts(
         n_parties, chain, 'validator_phrases', 'validator_accounts')
-    bootstrap_chain(validators, chain,
+    bootstrap_chain(parties[:n_validators], chain,
                     benchmark_config=benchmark_config, **chain_flags)
-    generate_p2p_keys(validators)
+    bootstrap_nodes(parties[n_validators:], chain, **chain_flags)
+    generate_p2p_keys(parties)
 
     color_print('waiting till ports are open on machines')
     wait('open 22', regions, tag)
 
     color_print('setup')
-    run_task('setup', regions, parallel, tag)
+    print(run_task('setup', regions, parallel, tag))
 
     color_print('send data')
-    run_task('send-data', regions, parallel, tag, pids)
+    print(run_task('send-data', regions, parallel, tag, pids))
 
     color_print('start nginx')
-    run_task('run-nginx', regions, parallel, tag)
+    print(run_task('run-nginx', regions, parallel, tag))
 
     color_print(
         f'establishing the environment took {round(time() - start, 2)}s')
@@ -512,7 +514,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
         color_print('schedule termination')
         with open('bin/terminate', 'w') as f:
             f.write(f'{terminate_in_min}')
-        run_task('schedule-termination', regions, parallel, tag)
+        print(run_task('schedule-termination', regions, parallel, tag))
 
     return pids
 
@@ -526,12 +528,12 @@ def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
 
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
-                node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=None):
+                node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=None, n_validators=None):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
     pids = setup_infrastructure(
-        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, terminate_in_min, **(chain_flags or dict()))
+        n_parties, chain, regions, instance_type, volume_size, tag, benchmark_config, terminate_in_min, n_validators, **(chain_flags or dict()))
 
     parallel = n_parties > 1
 

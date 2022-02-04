@@ -5,5 +5,5 @@ tqdm
 matplotlib
 joblib
 bip-utils
-shutil
+shutils
 pyyaml
