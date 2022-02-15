@@ -496,7 +496,8 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
     generate_p2p_keys(parties)
 
     color_print('waiting till ports are open on machines')
-    wait('open 22', regions, tag)
+    # wait('open 22', regions, tag)
+    sleep(20)
 
     color_print('setup')
     print(run_task('setup', regions, parallel, tag))
@@ -653,3 +654,33 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_regions=u
 
     color_print('intalling prometheus')
     run_task('install-prometheus', regions=[region], parallel=False, tag=tag)
+
+
+def setup_smart_flooder(path_to_contract_repo, region=default_region(), tag='dev', pids=None):
+    shutil.copytree(path_to_contract_repo, './bin/contracts-cli', ignore=shutil.ignore_patterns('.git', 'node_modules', 'target'), dirs_exist_ok=True)
+
+    call('yarn'.split(), cwd='./bin/contracts-cli/deploy')
+    call('yarn redspot compile'.split(), cwd='./bin/contracts-cli/deploy')
+    call('cargo clean'.split(), cwd='./bin/contracts-cli/deploy')
+    call('zip -r ./repo.zip ./contracts-cli'.split(),  cwd='./bin')
+
+    color_print('setup ...')
+    run_task('setup-contract-repo', regions=[region], tag=tag, pids=pids)
+
+
+def start_smart_flooder(signer='//Alice', methods_to_call=None, n_of_calls=None, region=default_region(), tag='dev', pids=None):
+    script = '#!/usr/bin/env bash\n' \
+        + f'cd contracts-cli\n' \
+        + 'export NVM_DIR="/home/ubuntu/.nvm"\n' \
+        + '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \n' \
+        + 'export PATH="/home/ubuntu/.cargo/bin:${PATH}"\n' \
+        + 'export PATH="/home/ubuntu/binaryen-version_105/bin:${PATH}"\n' \
+        + 'nvm use\n' \
+        + 'rm -r deploy/node_modules flood/node_modules\n' \
+        + f'./deploy-and-flood.sh -s {signer} -n {n_of_calls or 100}  {" ".join(methods_to_call) if methods_to_call  else ""}'
+
+    with open('bin/smart_flood.sh', 'w') as f:
+        f.write(script)
+
+    color_print('flooding...')
+    run_task('start-smart-flooder', regions=[region], tag=tag, pids=pids)

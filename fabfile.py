@@ -375,7 +375,7 @@ def send_flooder_binary(conn):
 def send_flooder_script(conn):
     # 1. Send script
     conn.put('bin/flooder_script.sh', '.')
-    
+
     # 2. add exec permissions
     conn.run('chmod +x ./flooder_script.sh')
 
@@ -389,12 +389,25 @@ def start_flooding(conn, pid):
 def _start_flooding(conn):
     # 1. Send script
     conn.put('bin/flooder_script.sh', '.')
-    
+
     # 2. add exec permissions
     conn.run('chmod +x ./flooder_script.sh')
 
     # 3. flood
     conn.run('./flooder_script.sh > flood.log 2> flood.error')
+
+@task
+def setup_contract_repo(conn):
+    conn.put('./bin/repo.zip', '.')
+    conn.run(f'unzip -o /home/ubuntu/repo.zip && rm repo.zip')
+    conn.put('smart_flooder_setup.sh', '.')
+    conn.run('./smart_flooder_setup.sh contracts-cli')
+
+@task
+def start_smart_flooder(conn):
+    conn.put('./bin/smart_flood.sh', '.')
+    conn.run('chmod +x smart_flood.sh')
+    conn.run('./smart_flood.sh > sf.log')
 
 
 # ======================================================================================
