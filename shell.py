@@ -669,15 +669,17 @@ def setup_smart_flooder(path_to_contract_repo, region=default_region(), tag='dev
 
 
 def start_smart_flooder(signer='//Alice', methods_to_call=None, n_of_calls=None, region=default_region(), tag='dev', pids=None):
-    script = '#!/usr/bin/env bash\n' \
-        + f'cd contracts-cli\n' \
-        + 'export NVM_DIR="/home/ubuntu/.nvm"\n' \
-        + '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \n' \
-        + 'export PATH="/home/ubuntu/.cargo/bin:${PATH}"\n' \
-        + 'export PATH="/home/ubuntu/binaryen-version_105/bin:${PATH}"\n' \
-        + 'nvm use\n' \
-        + 'rm -r deploy/node_modules flood/node_modules\n' \
-        + f'./deploy-and-flood.sh -s {signer} -n {n_of_calls or 100}  {" ".join(methods_to_call) if methods_to_call  else ""}'
+    script = f"""
+#!/usr/bin/env bash
+cd contracts-cli
+export NVM_DIR="/home/ubuntu/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+export PATH="/home/ubuntu/.cargo/bin:${{PATH}}"
+export PATH="/home/ubuntu/binaryen-version_105/bin:${{PATH}}"
+nvm use
+rm -r deploy/node_modules flood/node_modules
+'/deploy-and-flood.sh -s {signer} -n {n_of_calls or 100}  {" ".join(methods_to_call) if methods_to_call  else ""}
+"""
 
     with open('bin/smart_flood.sh', 'w') as f:
         f.write(script)
