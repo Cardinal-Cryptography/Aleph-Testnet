@@ -171,12 +171,9 @@ def create_dispatch_cmd(conn, pid):
     ]
     debug_flags = [
         '-lafa=debug',
-        '-laleph-network=trace',
+        '-laleph-network=debug',
         '-laleph-party=debug',
         '-lAlephBFT-creator=debug',
-        '-lsync=trace',
-        '-lsub-libp2p=trace',
-        '-lpeerset=trace',
     ]
     val_flags = {
         '--chain': 'chainspec.json',
