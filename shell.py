@@ -3,7 +3,7 @@ import os
 import shutil
 
 from functools import partial
-from subprocess import run, call
+from subprocess import run, call, Popen, PIPE
 from time import sleep, time
 from joblib import Parallel, delayed
 
@@ -149,6 +149,21 @@ def instances_state_in_region(region_name=default_region(), tag='dev'):
 
     return states
 
+def get_pid_ips(pids):
+    if pids is None:
+        with open('addresses', 'r') as f:
+            return map(lambda line: line.strip(), f.readlines())
+    else:
+        ips = []
+        for pid in pids:
+            line = int(pid)+1
+            bashCommand = ["sed", f"{line}!d", "addresses"]
+            process = Popen(bashCommand, stdout=PIPE)
+            address, error = process.communicate()
+            ips.append(address.decode('utf-8').strip())
+        return ips
+
+
 
 def run_task_in_region(task='test', region_name=default_region(), parallel=True, tag='dev', pids=None):
     '''
@@ -160,7 +175,10 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
 
     print(f'running task {task} in {region_name}')
 
-    ip_list = instances_ip_in_region(region_name, tag)
+    # this function doesn't actually work for multiple regions
+    # and is unlikely to work in general
+    # so it fits perfectly with the code 'round here...
+    ip_list = get_pid_ips(pids)
     if parallel:
         hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
         pcmd = f'parallel {fab_cmd()} -H'
@@ -482,16 +500,15 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
         c += len(ipl)
         ip_list.extend(ipl)
 
-    allow_traffic(regions, ip_list, parallel, tag)
+    allow_all_traffic(regions, tag)
 
     write_addresses(ip_list)
 
     os.makedirs('data', exist_ok=True)
 
-    parties = generate_accounts(
-        n_parties, chain, 'validator_phrases', 'validator_accounts')
+    parties = generate_accounts(n_parties, chain, 'validator_phrases', 'validator_accounts')
     bootstrap_chain(parties[:n_validators], chain,
-                    benchmark_config=benchmark_config, **chain_flags)
+                    benchmark_config=benchmark_config, rich_accounts=parties[n_validators:], **chain_flags)
     bootstrap_nodes(parties[n_validators:], chain, **chain_flags)
     generate_p2p_keys(parties)
 
@@ -541,12 +558,32 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
     color_print('send the binary')
     run_task('send-binary', regions, parallel, tag)
 
+    color_print('send the CLI binary')
+    run_task('send-cli-binary', regions, parallel, tag)
+
     save_node_flags(node_flags or dict())
     run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
     run_task('install-prometheus-exporter', regions, parallel, tag)
 
     return pids
+
+def change_validators(regions, tag, pids):
+    color_print('collecting validator accounts')
+    with open("new_validators", "w") as f:
+        for _, region_pids in pids.items():
+            for pid in region_pids:
+                line = pid+1
+                bashCommand = ["sed", f"{line}!d", "validator_accounts"]
+                process = Popen(bashCommand, stdout=PIPE)
+                output, error = process.communicate()
+                f.write(output.decode('utf-8'))
+    color_print('rotating keys')
+    print(run_task('rotate-keys', regions, True, tag, pids))
+    color_print('changing validators')
+    first_region = regions[0]
+    pids = {first_region: pids[first_region][:1]}
+    print(run_task('rotate-validators', regions[:1], True, tag, pids))
 
 
 def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(), tag='dev'):

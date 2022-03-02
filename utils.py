@@ -331,7 +331,7 @@ def bootstrap_nodes(account_ids, chain, **custom_flags):
     for account_id in account_ids:
         run(cmd + ['--account-id', f'{account_id}'])
 
-def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
+def bootstrap_chain(account_ids, chain, benchmark_config=None, rich_accounts=[], **custom_flags):
     ''' Create the chain spec. '''
 
     cmd = './bin/aleph-node bootstrap-chain --base-path data'
@@ -365,6 +365,9 @@ def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
     chainspec['genesis']['runtime']['sudo']['key'] = sudo
     chainspec['genesis']['runtime']['balances']['balances'].append(
         (sudo, 10 ** 17))
+    for account in rich_accounts:
+        chainspec['genesis']['runtime']['balances']['balances'].append(
+            (account, 10 ** 17))
 
     prepare_vesting(chainspec)
 
