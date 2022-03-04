@@ -305,7 +305,7 @@ def derive_account_from_seed(seed, path):
 
 def generate_accounts_from_paths(paths):
     seed_bytes = SubstrateBip39SeedGenerator("bottom drive obey lake curtain smoke basket hold race lonely fit walk").Generate()
-    
+
     return (derive_account_from_seed(seed_bytes, path) for path in paths)
 
 
@@ -319,8 +319,6 @@ def bootstrap_nodes(account_ids, chain, **custom_flags):
         flags = {
             '--chain-id': 'a0tnet1',
             '--chain-name': 'AlephZeroTestnet',
-            '--session-period': '900',
-            '--millisecs-per-block': '1000',
             '--token-symbol': 'TZERO',
         }
         flags.update(custom_flags)
@@ -342,8 +340,6 @@ def bootstrap_chain(account_ids, chain, benchmark_config=None, **custom_flags):
             '--chain-id': 'a0tnet1',
             '--chain-name': 'AlephZeroTestnet',
             '--account-ids': ",".join(account_ids),
-            '--session-period': '900',
-            '--millisecs-per-block': '1000',
             '--token-symbol': 'TZERO',
         }
         flags.update(custom_flags)
@@ -404,7 +400,6 @@ def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
     azero_amount = int(azero_amount)
 
     bench_accounts = generate_accounts_from_paths((str(i) for i in range(n_of_accounts)))
-    
     amount = azero_amount * azero()
     balances = ((aid, amount) for aid in bench_accounts)
 

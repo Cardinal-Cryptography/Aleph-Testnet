@@ -497,7 +497,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     color_print('waiting till ports are open on machines')
     # wait('open 22', regions, tag)
-    sleep(20)
+    sleep(45)
 
     color_print('setup')
     print(run_task('setup', regions, parallel, tag))
