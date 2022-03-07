@@ -156,7 +156,7 @@ def get_pid_ips(pids):
     else:
         ips = []
         for pid in pids:
-            line = int(pid)+1
+            line = int(pid) + 1
             bashCommand = ["sed", f"{line}!d", "addresses"]
             process = Popen(bashCommand, stdout=PIPE)
             address, error = process.communicate()

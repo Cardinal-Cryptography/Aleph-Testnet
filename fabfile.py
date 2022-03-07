@@ -114,11 +114,7 @@ def run_docker_compose(conn, pid):
 @task
 def send_binary(conn):
     ''' Zips, sends and unzips the binary. '''
-    zip_file = 'aleph-node.zip'
-    cmd = f'zip -j {zip_file} bin/aleph-node'
-    call(cmd.split())
-    conn.put(f'{zip_file}', '.')
-    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+    send_zip(conn, 'aleph-node.zip', 'bin/aleph-node')
 
 # ======================================================================================
 #                                       nginx
@@ -170,7 +166,6 @@ def create_dispatch_cmd(conn, pid):
         '--unsafe-ws-external',
     ]
     debug_flags = [
-        '-lafa=debug',
         '-laleph-network=debug',
         '-laleph-party=debug',
         '-lAlephBFT-creator=debug',
@@ -279,11 +274,7 @@ def upgrade_binary(conn):
 @task
 def send_cli_binary(conn):
     ''' Zips, sends and unzips the rotation binary. '''
-    zip_file = 'cliain.zip'
-    cmd = f'zip -j {zip_file} bin/cliain'
-    call(cmd.split())
-    conn.put(f'{zip_file}', '.')
-    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+    send_zip(conn, 'cliain.zip', 'bin/cliain')
 
 @task
 def rotate_keys(conn, pid):
@@ -481,7 +472,7 @@ def schedule_termination(conn):
 # ======================================================================================
 
 
-def send_zip(conn, file, zip_file):
+def send_zip(conn, zip_file, file):
     cmd = f'zip -j {zip_file} {file}'
     call(cmd.split())
     conn.put(f'{zip_file}', '.')
