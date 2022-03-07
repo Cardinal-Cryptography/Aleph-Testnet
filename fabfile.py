@@ -2,7 +2,7 @@
 import json
 from itertools import chain
 from os import remove
-from subprocess import call
+from subprocess import Popen, call, PIPE
 
 from fabric import task
 
@@ -114,11 +114,7 @@ def run_docker_compose(conn, pid):
 @task
 def send_binary(conn):
     ''' Zips, sends and unzips the binary. '''
-    zip_file = 'aleph-node.zip'
-    cmd = f'zip -j {zip_file} bin/aleph-node'
-    call(cmd.split())
-    conn.put(f'{zip_file}', '.')
-    conn.run(f'unzip -o /home/ubuntu/{zip_file} && rm {zip_file}')
+    send_zip(conn, 'aleph-node.zip', 'bin/aleph-node')
 
 # ======================================================================================
 #                                       nginx
@@ -170,8 +166,7 @@ def create_dispatch_cmd(conn, pid):
         '--unsafe-ws-external',
     ]
     debug_flags = [
-        '-lafa=debug',
-        '-laleph-network=trace',
+        '-laleph-network=debug',
         '-laleph-party=debug',
         '-lAlephBFT-creator=debug',
     ]
@@ -184,7 +179,7 @@ def create_dispatch_cmd(conn, pid):
         '--execution': 'Native',
         '--prometheus-port': '9615',
         '--rpc-cors': 'all',
-        '--rpc-methods': 'Safe',
+        '--rpc-methods': 'Unsafe',
         '--node-key-file': f'data/{auth}/p2p_secret',
         '--bootnodes': bootnodes,
     }
@@ -271,6 +266,42 @@ def upgrade_binary(conn):
     # 3. restart binary
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/cmd.sh')
 
+
+# ======================================================================================
+#                                      validator rotation
+# ======================================================================================
+
+@task
+def send_cli_binary(conn):
+    ''' Zips, sends and unzips the rotation binary. '''
+    send_zip(conn, 'cliain.zip', 'bin/cliain')
+
+@task
+def rotate_keys(conn, pid):
+    ''' Rotate the keys for validators.'''
+    line = int(pid)+1
+    bashCommand = ["sed", f"{line}!d", "validator_phrases"]
+    process = Popen(bashCommand, stdout=PIPE)
+    key, error = process.communicate()
+    key = key.decode('utf-8').strip()
+    conn.run(f'./cliain --node "127.0.0.1:9944" --seed "{key}" prepare-keys')
+
+def get_sudo_sk():
+    with open('accounts/sudo_sk', 'r') as f:
+        return f.readline().strip()
+
+def new_validators():
+    with open('new_validators', 'r') as f:
+        return ','.join(map(lambda line: line.strip(), f.readlines()))
+
+@task
+def rotate_validators(conn, pid):
+    ''' Rotate the validators.'''
+    validators = new_validators()
+    print(validators)
+    sudo_key = get_sudo_sk()
+    print(sudo_key)
+    conn.run(f'./cliain --node "127.0.0.1:9944" --seed "{sudo_key}" change-validators --validators {validators}')
 
 # ======================================================================================
 #                                       type-script flooder
@@ -441,7 +472,7 @@ def schedule_termination(conn):
 # ======================================================================================
 
 
-def send_zip(conn, file, zip_file):
+def send_zip(conn, zip_file, file):
     cmd = f'zip -j {zip_file} {file}'
     call(cmd.split())
     conn.put(f'{zip_file}', '.')
