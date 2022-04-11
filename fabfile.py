@@ -164,6 +164,7 @@ def create_dispatch_cmd(conn, pid):
         '--prometheus-external',
         '--no-telemetry',
         '--unsafe-ws-external',
+        '--unsafe-rpc-external',
     ]
     debug_flags = [
         '-laleph-network=debug',
