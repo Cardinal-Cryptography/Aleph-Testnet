@@ -164,6 +164,7 @@ def create_dispatch_cmd(conn, pid):
         '--prometheus-external',
         '--no-telemetry',
         '--unsafe-ws-external',
+        '--unsafe-rpc-external',
     ]
     debug_flags = [
         '-laleph-network=debug',
@@ -223,6 +224,9 @@ def install_prometheus(conn):
         'tar xvfz prometheus*.tar.gz'
     conn.run(install_cmd)
 
+@task
+def kill_nodes(conn):
+    conn.run('killall aleph-node')
 
 @task
 def send_prometheus_config(conn):
