@@ -359,8 +359,9 @@ def bootstrap_chain(account_ids, chain, benchmark_config=None, rich_accounts=[],
     sudo = generate_accounts(
         1, 'gen', 'accounts/sudo_sk', 'accounts/sudo_aid')[0]
     chainspec['genesis']['runtime']['sudo']['key'] = sudo
+    sudo_money = 10 ** 20
     chainspec['genesis']['runtime']['balances']['balances'].append(
-        (sudo, 10 ** 20))
+        (sudo, sudo_money))
     for account in rich_accounts:
         chainspec['genesis']['runtime']['balances']['balances'].append(
             (account, 10 ** 17))

@@ -226,8 +226,7 @@ def install_prometheus(conn):
 
 @task
 def kill_nodes(conn):
-    kill_cmd = f'killall aleph-node'
-    conn.run(kill_cmd)
+    conn.run('killall aleph-node')
 
 @task
 def send_prometheus_config(conn):
