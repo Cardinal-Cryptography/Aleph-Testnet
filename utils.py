@@ -317,8 +317,8 @@ def bootstrap_nodes(account_ids, chain, **custom_flags):
         cmd += ['--chain-id', 'a0dnet1', '--n-members', f'{len(account_ids)}']
     else:
         flags = {
-            '--chain-id': 'a0tnet1',
-            '--chain-name': 'AlephZeroTestnet',
+            '--chain-id': 'testnet',
+            '--chain-name': 'Aleph Zero Testnet',
             '--token-symbol': 'TZERO',
         }
         flags.update(custom_flags)
@@ -427,10 +427,29 @@ def write_addresses(ip_list):
         for ip in ip_list:
             f.write(ip+'\n')
 
+def write_sync(sync_from_genesis):
+    with open('sync_from_genesis', 'w') as f:
+        if sync_from_genesis:
+            f.write('True\n')
+        else:
+            f.write('False\n')
+
+def write_bootnodes(bootnodes):
+    with open('bootnodes', 'w') as f:
+        for bootnode in bootnodes:
+            f.write(bootnode+'\n')
 
 def use_regions():
     return ['eu-central-1', 'eu-west-1', 'eu-west-2', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2']
 
+def testnet_bootnodes():
+    return [
+        '/dns4/bootnode-eu-central-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L',
+        '/dns4/bootnode-eu-west-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k',
+        '/dns4/bootnode-eu-west-2-0.test.azero.dev/tcp/30333/p2p/12D3KooWAkqYFFKMEJn6fnPjYnbuBBsBZq6fRFJZYR6rxnuCZWCC',
+        '/dns4/bootnode-us-east-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWQFkkFr5aM5anGEiUCQiGUdRyWgrdpvSjBgWAUS9srLE4',
+        '/dns4/bootnode-us-east-2-0.test.azero.dev/tcp/30333/p2p/12D3KooWD5s2dkifJua69RbLwEREDdJjsNHvavNRGxdCvzhoeaLc'
+    ]
 
 def default_region():
     ''' Helper function for getting default region name for current setup.'''
