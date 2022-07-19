@@ -212,26 +212,22 @@ def create_testnet_dispatch_cmd(conn, pid):
         bootnodes = [bn.strip() for bn in f.readlines()]
     bootnodes = " ".join(bootnodes)
 
-    sync_from_genesis = True
-    with open("sync_from_genesis", "r") as f:
-        sync_from_genesis = f.readline().strip()
-
     auth = pid_to_auth(pid)
     flags = get_node_flags(auth, bootnodes)
-    cmd_run = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
+    run_cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
     conn.run("echo > /home/ubuntu/cmd.sh")
-    if sync_from_genesis == 'True':
-        conn.run(f"sed -i '$a{cmd_run}' /home/ubuntu/cmd.sh")
-    else:
-        today = date.today()
-        yesterday = today - timedelta(days=1)
-        cmd_download = f'echo Started download >> download_db.log; '\
-            f'wget -O db.tar.gz https://db.test.azero.dev/{yesterday}/db_backup_{yesterday}.tar.gz -nv -a download_db.log; '\
-            f'echo Started unpacking db >> download_db.log; '\
-            f'tar xvzf db.tar.gz -C data/{auth}/chains/testnet; '\
-            f'echo Unpacking done, removing tar.gz >> download_db.log; '\
-            'rm db.tar.gz; '
-        conn.run(f"sed -i '$a{cmd_download}{cmd_run}' /home/ubuntu/cmd.sh")
+    conn.run(f"sed -i '$a{run_cmd}' /home/ubuntu/cmd.sh")
+    
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    download_cmd = f'set -e; echo Started download >> download_db.log; '\
+        f'wget -c -O db.tar.gz https://db.test.azero.dev/{yesterday}/db_backup_{yesterday}.tar.gz -nv -a download_db.log; '\
+        f'echo Started unpacking db >> download_db.log; '\
+        f'tar xvzf db.tar.gz -C data/{auth}/chains/testnet; '\
+        f'echo Unpacking done, removing tar.gz >> download_db.log; '\
+        'rm db.tar.gz; '
+    conn.run("echo > /home/ubuntu/download_run_cmd.sh")
+    conn.run(f"sed -i '$a{download_cmd}{run_cmd}' /home/ubuntu/download_run_cmd.sh")
 
 
 @task
@@ -239,6 +235,12 @@ def purge(conn, pid):
     auth = pid_to_auth(pid)
     conn.run(
         f'/home/ubuntu/aleph-node purge-chain --base-path data/{auth} --chain chainspec.json -y')
+
+
+@task
+def download_db_dispatch(conn):
+    run_node_exporter(conn)
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/download_run_cmd.sh')
 
 
 @task

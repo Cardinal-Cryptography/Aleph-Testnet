@@ -514,7 +514,7 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
         bootstrap_nodes(parties[n_validators:], chain, **chain_flags)
     else:
         color_print('Downloading testnet chainspec')
-        cmd = f'wget -O chainspec.json https://raw.githubusercontent.com/Cardinal-Cryptography/aleph-node/main/bin/node/src/resources/testnet_chainspec.json'
+        cmd = f'wget -O chainspec.json https://github.com/Cardinal-Cryptography/aleph-node/raw/main/bin/node/src/resources/testnet_chainspec.json'
         print(run(cmd.split(), capture_output=True))
         bootstrap_nodes(parties, chain, **chain_flags)
     generate_p2p_keys(parties)
@@ -554,7 +554,7 @@ def send_flooder_to_nodes(flooder_binary, regions=use_regions(), tag='dev'):
 
 def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
                 node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=None, n_validators=None,
-                bootnodes=testnet_bootnodes(), sync_from_genesis=False):
+                bootnodes=testnet_bootnodes()):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the nodes.'''
 
@@ -572,7 +572,6 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
     save_node_flags(node_flags or dict())
     if chain == 'testnet':
         write_bootnodes(bootnodes)
-        write_sync(sync_from_genesis)
         run_task('create-testnet-dispatch-cmd', regions, parallel, tag, pids)
     else:
         run_task('create-dispatch-cmd', regions, parallel, tag, pids)
@@ -631,12 +630,12 @@ def prepare_benchmark_script(benchmark_config, n_parties, regions=use_regions(),
 
 def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type='t2.micro', volume_size=8, tag='dev',
                     node_flags=None, benchmark_config=None, chain_flags=None, terminate_in_min=60, n_validators=None,
-                    bootnodes=testnet_bootnodes(), sync_from_genesis=False):
+                    bootnodes=testnet_bootnodes()):
     '''Setups the infrastructure and the binary. After it is successful, the 'dispatch'
     task has to be run to start the benchmark.'''
 
     pids = setup_nodes(n_parties, chain, regions, instance_type,
-                       volume_size, tag, node_flags, benchmark_config, chain_flags, terminate_in_min, n_validators, bootnodes, sync_from_genesis)
+                       volume_size, tag, node_flags, benchmark_config, chain_flags, terminate_in_min, n_validators, bootnodes)
 
     allow_all_traffic(regions, tag)
 

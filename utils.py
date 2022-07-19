@@ -427,13 +427,6 @@ def write_addresses(ip_list):
         for ip in ip_list:
             f.write(ip+'\n')
 
-def write_sync(sync_from_genesis):
-    with open('sync_from_genesis', 'w') as f:
-        if sync_from_genesis:
-            f.write('True\n')
-        else:
-            f.write('False\n')
-
 def write_bootnodes(bootnodes):
     with open('bootnodes', 'w') as f:
         for bootnode in bootnodes:
