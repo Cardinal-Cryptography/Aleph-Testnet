@@ -3,6 +3,7 @@ import json
 from itertools import chain
 from os import remove
 from subprocess import Popen, call, PIPE
+from datetime import date, timedelta
 
 from fabric import task
 
@@ -144,21 +145,7 @@ def pid_to_auth(pid):
         return f.readlines()[int(pid)][:-1]
 
 
-@task
-def create_dispatch_cmd(conn, pid):
-    ''' Runs the protocol.'''
-
-    auth = pid_to_auth(pid)
-    libp2p_addresses = []
-    with open("addresses", "r") as f:
-        addresses = [addr.strip() for addr in f.readlines()]
-    with open("libp2p_public_keys", "r") as f:
-        keys = [key.strip() for key in f.readlines()]
-    for address, key in zip(addresses, keys):
-        libp2p_addresses.append(
-            f'/ip4/{address}/tcp/30334/p2p/{key}')
-    bootnodes = " ".join(libp2p_addresses[-2:])
-
+def get_node_flags(auth, bootnodes):
     no_val_flags = [
         '--validator',
         '--prometheus-external',
@@ -191,11 +178,56 @@ def create_dispatch_cmd(conn, pid):
     val_flags.update(custom_val_flags)
     val_flags = [f'{key} {val}' for (key, val) in val_flags.items()]
 
-    flags = " ".join(chain(no_val_flags, val_flags, debug_flags))
-    cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
+    return " ".join(chain(no_val_flags, val_flags, debug_flags))
 
+
+@task
+def create_dispatch_cmd(conn, pid):
+    ''' Runs the protocol.'''
+
+    libp2p_addresses = []
+    with open("addresses", "r") as f:
+        addresses = [addr.strip() for addr in f.readlines()]
+    with open("libp2p_public_keys", "r") as f:
+        keys = [key.strip() for key in f.readlines()]
+    for address, key in zip(addresses, keys):
+        libp2p_addresses.append(
+            f'/ip4/{address}/tcp/30334/p2p/{key}')
+    bootnodes = " ".join(libp2p_addresses[-2:])
+
+    auth = pid_to_auth(pid)
+    flags = get_node_flags(auth, bootnodes)
+
+    cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{cmd}' /home/ubuntu/cmd.sh")
+
+
+@task
+def create_testnet_dispatch_cmd(conn, pid):
+    ''' Runs the protocol for testnet and downloads db.'''
+
+    bootnodes = []
+    with open("bootnodes", "r") as f:
+        bootnodes = [bn.strip() for bn in f.readlines()]
+    bootnodes = " ".join(bootnodes)
+
+    auth = pid_to_auth(pid)
+    flags = get_node_flags(auth, bootnodes)
+    run_cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
+    conn.run("echo > /home/ubuntu/cmd.sh")
+    conn.run(f"sed -i '$a{run_cmd}' /home/ubuntu/cmd.sh")
+    
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    download_cmd = f'set -e; echo Started download >> download_db.log; '\
+        f'wget -c -O db.tar.gz https://db.test.azero.dev/{yesterday}/db_backup_{yesterday}.tar.gz -nv -a download_db.log; '\
+        f'echo Started unpacking db >> download_db.log; '\
+        f'tar xvzf db.tar.gz -C data/{auth}/chains/testnet; '\
+        f'echo Unpacking done, removing tar.gz >> download_db.log; '\
+        'rm db.tar.gz; '
+    conn.run("echo > /home/ubuntu/download_run_cmd.sh")
+    conn.run(f"sed -i '$a{download_cmd}{run_cmd}' /home/ubuntu/download_run_cmd.sh")
 
 
 @task
@@ -203,6 +235,12 @@ def purge(conn, pid):
     auth = pid_to_auth(pid)
     conn.run(
         f'/home/ubuntu/aleph-node purge-chain --base-path data/{auth} --chain chainspec.json -y')
+
+
+@task
+def download_db_dispatch(conn):
+    run_node_exporter(conn)
+    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/download_run_cmd.sh')
 
 
 @task
