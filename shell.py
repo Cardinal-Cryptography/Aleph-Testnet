@@ -645,6 +645,41 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     return pids
 
 
+def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.micro', volume_size=124, tag='dev'):
+    color_print('launching machines')
+    nhpr = n_parties_per_regions(n_parties, regions)
+    launch_new_instances(nhpr, instance_type, volume_size, tag)
+
+    color_print('waiting for transition from pending to running')
+    wait('running', regions, tag)
+
+    color_print('generating keys & addresses files')
+    pids, ip2pid, ip_list, c = {}, {}, [], 0
+    for r in regions:
+        ipl = instances_ip_in_region(r, tag)
+        pids[r] = [str(pid) for pid in range(c, c + len(ipl))]
+        ip2pid.update({ip: pid for (ip, pid) in zip(ipl, pids[r])})
+        c += len(ipl)
+        ip_list.extend(ipl)
+
+    allow_all_traffic(regions, tag)
+
+    write_addresses(ip_list)
+
+    os.makedirs('data', exist_ok=True)
+    generate_accounts(n_parties, 'testnet', 'validator_phrases', 'validator_accounts')
+
+    # arghhhh
+    # wait('open 22', regions, tag)
+    sleep(60 * 3)
+
+    run_task('setup', regions, True, tag)
+    run_task('docker-setup', regions, True, tag)
+
+    run_task('run-aleph-runner', regions, True, tag, pids=pids)
+
+
+
 def setup_flooding(region=default_region(), tag='flooders'):
     color_print('launching instance')
     launch_new_instances_in_region(n_parties=1, region_name=region, tag=tag)
@@ -737,3 +772,4 @@ rm -r deploy/node_modules flood/node_modules
 
     color_print('flooding...')
     run_task('start-smart-flooder', regions=[region], tag=tag, pids=pids)
+

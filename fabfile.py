@@ -23,8 +23,7 @@ def setup(conn):
 @task
 def docker_setup(conn):
     conn.put('docker_setup.sh', '.')
-    conn.run(
-        'dtach -n `mktemp -u /tmp/dtach.XXXX` bash docker_setup.sh', hide='both')
+    conn.run('./docker_setup.sh', hide='both')
 
 
 @task
@@ -524,3 +523,27 @@ def send_zip(conn, zip_file, file):
 def run_node_exporter(conn):
     run_node_exporter_cmd = f'./node_exporter-*.*-amd64/node_exporter'
     conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` {run_node_exporter_cmd}')
+
+# ======================================================================================
+#                                        node-runner
+# ======================================================================================
+
+def get_address_for_pid(pid: int) -> str:
+    with open("addresses", "r") as f:
+        return f.readlines()[pid].strip()
+
+
+def get_account_for_pid(pid: int) -> str:
+    with open("validator_accounts", "r") as f:
+        return f.readlines()[pid].strip()
+
+
+@task
+def run_aleph_runner(conn, pid):
+    pid = int(pid)
+    ip = get_address_for_pid(pid)
+    account = get_account_for_pid(pid)
+
+    conn.run("git clone https://github.com/Cardinal-Cryptography/aleph-node-runner.git")
+    conn.run(f"cd aleph-node-runner; yes | ./run_node.sh --name Node{pid} --ip {ip} --stash_account {account} > runner.logs")
+
