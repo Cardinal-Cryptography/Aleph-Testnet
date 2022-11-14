@@ -87,14 +87,15 @@ def create_instances(region_name, image_id, n_parties, instance_type, key_name,
 
 
 def launch_new_instances_in_region(n_parties=1, region_name=default_region(),
-                                   instance_type='t2.micro', volume_size=8, tag='dev'):
+                                   instance_type='t2.micro', image_id='', volume_size=8, tag='dev'):
     '''Launches n_parties in a given region.'''
 
     print('launching instances in', region_name)
 
     init_key_pair(region_name)
     security_group_id = security_group_id_by_region(region_name, tag)
-    image_id = image_id_in_region(region_name, 'ubuntu')
+    if image_id == '':
+        image_id = image_id_in_region(region_name, 'ubuntu')
 
     return create_instances(region_name, image_id, n_parties, instance_type, 'aleph',
                             security_group_id, volume_size, tag)
@@ -310,7 +311,7 @@ def exec_for_regions(func, regions=use_regions(), parallel=True, pids=None):
     return results
 
 
-def launch_new_instances(nppr, instance_type='t2.micro', volume_size=8, tag='dev'):
+def launch_new_instances(nppr, instance_type='t2.micro', image_id='', volume_size=8, tag='dev'):
     '''
     Launches n_parties_per_region in ever region from given regions.
     :param dict nppr: dict region_name --> n_parties_per_region
@@ -323,7 +324,7 @@ def launch_new_instances(nppr, instance_type='t2.micro', volume_size=8, tag='dev
     for region_name in regions:
         print(region_name, '', end='')
         instances = launch_new_instances_in_region(
-            nppr[region_name], region_name, instance_type, volume_size, tag)
+            nppr[region_name], region_name, instance_type, image_id,volume_size, tag)
         if not instances:
             failed.append(region_name)
 
@@ -336,7 +337,7 @@ def launch_new_instances(nppr, instance_type='t2.micro', volume_size=8, tag='dev
         for region_name in failed.copy():
             print(region_name, '', end='')
             instances = launch_new_instances_in_region(
-                nppr[region_name], region_name, instance_type, volume_size, tag)
+                nppr[region_name], region_name, instance_type, image_id, volume_size, tag)
             if instances:
                 failed.remove(region_name)
 
@@ -575,7 +576,7 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
         run_task('create-testnet-dispatch-cmd', regions, parallel, tag, pids)
     else:
         run_task('create-dispatch-cmd', regions, parallel, tag, pids)
-        
+
 
     run_task('install-prometheus-exporter', regions, parallel, tag)
 
@@ -645,10 +646,12 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
     return pids
 
 
-def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.micro', volume_size=124, tag='dev'):
+def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.micro',
+                      volume_size=256, tag='dev'):
     color_print('launching machines')
+    testnet_ami = 'ami-08debadc574811745'
     nhpr = n_parties_per_regions(n_parties, regions)
-    launch_new_instances(nhpr, instance_type, volume_size, tag)
+    launch_new_instances(nhpr, instance_type, testnet_ami, volume_size, tag)
 
     color_print('waiting for transition from pending to running')
     wait('running', regions, tag)
@@ -671,10 +674,8 @@ def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.mic
 
     # arghhhh
     # wait('open 22', regions, tag)
-    sleep(60 * 3)
-
-    run_task('setup', regions, True, tag)
-    run_task('docker-setup', regions, True, tag)
+    color_print('waiting for 22')
+    sleep(60)
 
     run_task('run-aleph-runner', regions, True, tag, pids=pids)
 
