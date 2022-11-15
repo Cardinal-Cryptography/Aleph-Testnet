@@ -216,7 +216,7 @@ def create_testnet_dispatch_cmd(conn, pid):
     run_cmd = f'/home/ubuntu/aleph-node {flags} 2> {pid}.log'
     conn.run("echo > /home/ubuntu/cmd.sh")
     conn.run(f"sed -i '$a{run_cmd}' /home/ubuntu/cmd.sh")
-    
+
     today = date.today()
     yesterday = today - timedelta(days=1)
     download_cmd = f'set -e; echo Started download >> download_db.log; '\
@@ -226,7 +226,8 @@ def create_testnet_dispatch_cmd(conn, pid):
         f'echo Unpacking done, removing tar.gz >> download_db.log; '\
         'rm db.tar.gz; '
     conn.run("echo > /home/ubuntu/download_run_cmd.sh")
-    conn.run(f"sed -i '$a{download_cmd}{run_cmd}' /home/ubuntu/download_run_cmd.sh")
+    conn.run(
+        f"sed -i '$a{download_cmd}{run_cmd}' /home/ubuntu/download_run_cmd.sh")
 
 
 @task
@@ -239,7 +240,8 @@ def purge(conn, pid):
 @task
 def download_db_dispatch(conn):
     run_node_exporter(conn)
-    conn.run(f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/download_run_cmd.sh')
+    conn.run(
+        f'dtach -n `mktemp -u /tmp/dtach.XXXX` sh /home/ubuntu/download_run_cmd.sh')
 
 
 @task
@@ -254,6 +256,7 @@ def install_prometheus_exporter(conn):
         'tar xvfz node_exporter-*.*-amd64.tar.gz; '
     conn.run(install_cmd)
 
+
 @task
 def install_prometheus(conn):
     download_cmd = f'wget https://github.com/prometheus/prometheus/releases/download/v2.32.1/prometheus-2.32.1.linux-amd64.tar.gz'
@@ -261,9 +264,11 @@ def install_prometheus(conn):
         'tar xvfz prometheus*.tar.gz'
     conn.run(install_cmd)
 
+
 @task
 def kill_nodes(conn):
     conn.run('killall aleph-node')
+
 
 @task
 def send_prometheus_config(conn):
@@ -317,6 +322,7 @@ def send_cli_binary(conn):
     ''' Zips, sends and unzips the rotation binary. '''
     send_zip(conn, 'cliain.zip', 'bin/cliain')
 
+
 @task
 def rotate_keys(conn, pid):
     ''' Rotate the keys for validators.'''
@@ -327,13 +333,16 @@ def rotate_keys(conn, pid):
     key = key.decode('utf-8').strip()
     conn.run(f'./cliain --node "127.0.0.1:9944" --seed "{key}" prepare-keys')
 
+
 def get_sudo_sk():
     with open('accounts/sudo_sk', 'r') as f:
         return f.readline().strip()
 
+
 def new_validators():
     with open('new_validators', 'r') as f:
         return ','.join(map(lambda line: line.strip(), f.readlines()))
+
 
 @task
 def rotate_validators(conn, pid):
@@ -342,7 +351,8 @@ def rotate_validators(conn, pid):
     print(validators)
     sudo_key = get_sudo_sk()
     print(sudo_key)
-    conn.run(f'./cliain --node "127.0.0.1:9944" --seed "{sudo_key}" change-validators --validators {validators}')
+    conn.run(
+        f'./cliain --node "127.0.0.1:9944" --seed "{sudo_key}" change-validators --validators {validators}')
 
 # ======================================================================================
 #                                       type-script flooder
@@ -452,7 +462,7 @@ def send_flooder_script(conn):
     conn.run('chmod +x ./flooder_script.sh')
 
 
-@task 
+@task
 def start_flooding(conn, pid):
     conn.run(f'./flooder_script.sh {pid} > flood.log 2> flood.error')
 
@@ -468,12 +478,14 @@ def _start_flooding(conn):
     # 3. flood
     conn.run('./flooder_script.sh > flood.log 2> flood.error')
 
+
 @task
 def setup_contract_repo(conn):
     conn.put('./bin/repo.zip', '.')
     conn.run(f'unzip -o /home/ubuntu/repo.zip && rm repo.zip')
     conn.put('smart_flooder_setup.sh', '.')
     conn.run('./smart_flooder_setup.sh contracts-cli')
+
 
 @task
 def start_smart_flooder(conn):
@@ -528,6 +540,7 @@ def run_node_exporter(conn):
 #                                        node-runner
 # ======================================================================================
 
+
 def get_address_for_pid(pid: int) -> str:
     with open("addresses", "r") as f:
         return f.readlines()[pid].strip()
@@ -543,7 +556,10 @@ def run_aleph_runner(conn, pid):
     pid = int(pid)
     ip = get_address_for_pid(pid)
     account = get_account_for_pid(pid)
+    cmd = 'cd aleph-node-runner &&' \
+        'yes | ./aleph-node-runner/run_node.sh '\
+        f'--name Node{pid} '\
+        f'--ip {ip} '\
+        f'--stash_account {account}'
 
-    conn.run("git clone https://github.com/Cardinal-Cryptography/aleph-node-runner.git")
-    conn.run(f"cd aleph-node-runner; yes | ./run_node.sh --name Node{pid} --ip {ip} --stash_account {account} > runner.logs")
-
+    conn.run(cmd)
