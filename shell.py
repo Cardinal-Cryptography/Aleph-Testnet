@@ -670,7 +670,7 @@ def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.mic
     write_addresses(ip_list)
 
     os.makedirs('data', exist_ok=True)
-    generate_accounts(n_parties, 'testnet', 'validator_phrases', 'validator_accounts')
+    # generate_accounts(n_parties, 'testnet', 'validator_phrases', 'validator_accounts')
 
     # arghhhh
     # wait('open 22', regions, tag)
@@ -678,6 +678,9 @@ def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.mic
     sleep(60)
 
     run_task('run-aleph-runner', regions, True, tag, pids=pids)
+    # wait for node to run
+    sleep(120)
+    run_task('generate-session-keys', regions, True, tag, pids=pids)
 
 
 

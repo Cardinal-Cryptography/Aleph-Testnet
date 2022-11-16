@@ -551,15 +551,31 @@ def get_account_for_pid(pid: int) -> str:
         return f.readlines()[pid].strip()
 
 
+def get_seed_for_pid(pid: int) -> str:
+    with open("validator_phrases", "r") as f:
+        return f.readlines()[pid].strip()
+
+
 @task
 def run_aleph_runner(conn, pid):
     pid = int(pid)
     ip = get_address_for_pid(pid)
     account = get_account_for_pid(pid)
+    # sleep to wait for chain to start
     cmd = 'cd aleph-node-runner &&' \
-        'yes | ./aleph-node-runner/run_node.sh '\
+        f'./run_node.sh ' \
         f'--name Node{pid} '\
         f'--ip {ip} '\
-        f'--stash_account {account}'
+        f'--stash_account {account} ' \
+        '--sync_from_genesis'
 
     conn.run(cmd)
+
+@task
+def generate_session_keys(conn, pid):
+    pid = int(pid)
+    seed = get_seed_for_pid(pid)
+
+    conn.put('keys.sh', '.')
+    conn.run(f'./keys.sh "{seed}" > key.logs')
+
