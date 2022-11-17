@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+set -e
+
 addrs=($(bat -p addresses))
 
 for i in $(seq 0 9); do
