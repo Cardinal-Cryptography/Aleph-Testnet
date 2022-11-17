@@ -126,18 +126,6 @@ def update_security_group(region_name, ip_list=[], tag=''):
                     },
                     {
                         'FromPort': 9615,
-                        'IpProtocol': 'udp',
-                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                        'ToPort': 9615,
-                    },
-                    {
-                        'FromPort': 9944,
-                        'IpProtocol': 'udp',
-                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
-                        'ToPort': 9944,
-                    },
-                    {
-                        'FromPort': 9615,
                         'IpProtocol': 'tcp',
                         'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                         'ToPort': 9615,

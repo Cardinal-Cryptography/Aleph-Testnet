@@ -707,11 +707,6 @@ def setup_nuke(n_parties, regions=['eu-central-1'], instance_type='c5.xlarge',
     allow_traffic(regions, ip_list, True, tag)
     write_addresses(ip_list)
 
-    color_print('waiting for 22')
-    sleep(60)
-
-    run_task('send-run-node', regions, True, tag, pids=pids)
-
 
 def setup_flooding(region=default_region(), tag='flooders'):
     color_print('launching instance')
