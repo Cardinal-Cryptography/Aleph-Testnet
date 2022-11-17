@@ -150,6 +150,7 @@ def instances_state_in_region(region_name=default_region(), tag='dev'):
 
     return states
 
+
 def get_pid_ips(pids):
     if pids is None:
         with open('addresses', 'r') as f:
@@ -163,7 +164,6 @@ def get_pid_ips(pids):
             address, error = process.communicate()
             ips.append(address.decode('utf-8').strip())
         return ips
-
 
 
 def run_task_in_region(task='test', region_name=default_region(), parallel=True, tag='dev', pids=None):
@@ -324,7 +324,7 @@ def launch_new_instances(nppr, instance_type='t2.micro', image_id='', volume_siz
     for region_name in regions:
         print(region_name, '', end='')
         instances = launch_new_instances_in_region(
-            nppr[region_name], region_name, instance_type, image_id,volume_size, tag)
+            nppr[region_name], region_name, instance_type, image_id, volume_size, tag)
         if not instances:
             failed.append(region_name)
 
@@ -378,7 +378,7 @@ def run_task(task='test', regions=use_regions(), parallel=True, tag='dev', pids=
     '''
 
     return exec_for_regions(partial(run_task_in_region, task,
-                     parallel=parallel, tag=tag), regions, parallel, pids)
+                                    parallel=parallel, tag=tag), regions, parallel, pids)
 
 
 def run_cmd(cmd='ls', regions=use_regions(), parallel=True, tag='dev'):
@@ -507,7 +507,8 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     os.makedirs('data', exist_ok=True)
 
-    parties = generate_accounts(n_parties, chain, 'validator_phrases', 'validator_accounts')
+    parties = generate_accounts(
+        n_parties, chain, 'validator_phrases', 'validator_accounts')
     if chain != 'testnet':
         color_print('Generating chainspec')
         bootstrap_chain(parties[:n_validators], chain,
@@ -577,10 +578,10 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
     else:
         run_task('create-dispatch-cmd', regions, parallel, tag, pids)
 
-
     run_task('install-prometheus-exporter', regions, parallel, tag)
 
     return pids
+
 
 def change_validators(regions, tag, pids):
     color_print('collecting validator accounts')
@@ -649,9 +650,9 @@ def setup_benchmark(n_parties, chain='dev', regions=use_regions(), instance_type
 def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.micro',
                       volume_size=256, tag='dev'):
     color_print('launching machines')
-    testnet_ami = 'ami-08debadc574811745'
+    ami = 'ami-08debadc574811745'
     nhpr = n_parties_per_regions(n_parties, regions)
-    launch_new_instances(nhpr, instance_type, testnet_ami, volume_size, tag)
+    launch_new_instances(nhpr, instance_type, ami, volume_size, tag)
 
     color_print('waiting for transition from pending to running')
     wait('running', regions, tag)
@@ -682,6 +683,34 @@ def setup_node_runner(n_parties, regions=['eu-central-1'], instance_type='t2.mic
     sleep(120)
     run_task('generate-session-keys', regions, True, tag, pids=pids)
 
+
+def setup_nuke(n_parties, regions=['eu-central-1'], instance_type='c5.xlarge',
+               volume_size=512, tag='nukems'):
+    color_print('launching machines')
+    ami = 'ami-0d749bdc8824867eb'  # mainnet
+    nhpr = n_parties_per_regions(n_parties, regions)
+    launch_new_instances(nhpr, instance_type, ami, volume_size, tag)
+
+    color_print('waiting for transition from pending to running')
+    wait('running', regions, tag)
+
+    color_print('generating keys & addresses files')
+    pids, ip2pid, ip_list, c = {}, {}, [], 0
+    for r in regions:
+        ipl = instances_ip_in_region(r, tag)
+        pids[r] = [str(pid) for pid in range(c, c + len(ipl))]
+        ip2pid.update({ip: pid for (ip, pid) in zip(ipl, pids[r])})
+        c += len(ipl)
+        ip_list.extend(ipl)
+
+    color_print('allow traffic and write addresses')
+    allow_traffic(regions, ip_list, True, tag)
+    write_addresses(ip_list)
+
+    color_print('waiting for 22')
+    sleep(60)
+
+    run_task('send-run-node', regions, True, tag, pids=pids)
 
 
 def setup_flooding(region=default_region(), tag='flooders'):
@@ -720,7 +749,8 @@ def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
 
 def setup_prometheus(region=default_region(), tag='prometheus', target_regions=use_regions(), target_tag="dev"):
     color_print('retrieving target ips')
-    ips = [ip for region in target_regions for ip in instances_ip_in_region(region_name=region, tag=target_tag)]
+    ips = [ip for region in target_regions for ip in instances_ip_in_region(
+        region_name=region, tag=target_tag)]
     print('target ips:', ips)
 
     color_print('launching instance')
@@ -740,14 +770,16 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_regions=u
         yaml.dump(config, yml_file)
 
     color_print('sending prometheus.yml configuration file')
-    run_task('send-prometheus-config', regions=[region], parallel=False, tag=tag)
+    run_task('send-prometheus-config',
+             regions=[region], parallel=False, tag=tag)
 
     color_print('intalling prometheus')
     run_task('install-prometheus', regions=[region], parallel=False, tag=tag)
 
 
 def setup_smart_flooder(path_to_contract_repo, region=default_region(), tag='dev', pids=None):
-    shutil.copytree(path_to_contract_repo, './bin/contracts-cli', ignore=shutil.ignore_patterns('.git', 'node_modules', 'target'), dirs_exist_ok=True)
+    shutil.copytree(path_to_contract_repo, './bin/contracts-cli',
+                    ignore=shutil.ignore_patterns('.git', 'node_modules', 'target'), dirs_exist_ok=True)
 
     call('yarn'.split(), cwd='./bin/contracts-cli/deploy')
     call('yarn redspot compile'.split(), cwd='./bin/contracts-cli/deploy')
@@ -776,4 +808,3 @@ rm -r deploy/node_modules flood/node_modules
 
     color_print('flooding...')
     run_task('start-smart-flooder', regions=[region], tag=tag, pids=pids)
-

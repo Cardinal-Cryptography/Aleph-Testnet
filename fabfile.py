@@ -571,6 +571,7 @@ def run_aleph_runner(conn, pid):
 
     conn.run(cmd)
 
+
 @task
 def generate_session_keys(conn, pid):
     pid = int(pid)
@@ -579,3 +580,7 @@ def generate_session_keys(conn, pid):
     conn.put('keys.sh', '.')
     conn.run(f'./keys.sh "{seed}" > key.logs')
 
+
+@task
+def send_run_node(conn):
+    conn.put('run_node.sh', '/home/ubuntu/aleph-node-runner/scripts/run_node.sh')

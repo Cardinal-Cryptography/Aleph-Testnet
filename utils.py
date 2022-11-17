@@ -12,6 +12,7 @@ import boto3
 def azero():
     return int(1e12)
 
+
 def image_id_in_region(region_name, image_name='testnet1'):
     '''Find id of os image we use. The id may differ for different regions'''
 
@@ -108,8 +109,9 @@ def update_security_group(region_name, ip_list=[], tag=''):
 
     for security_group in ec2.security_groups.all():
         if security_group.group_name == security_group_name:
-            security_group.revoke_ingress(
-                IpPermissions=security_group.ip_permissions)
+            if len(security_group.ip_permissions) > 0:
+                security_group.revoke_ingress(
+                    IpPermissions=security_group.ip_permissions)
 
             # authorize incomming connections to port 22 for ssh and
             # all traffic from the given addresses
@@ -122,6 +124,20 @@ def update_security_group(region_name, ip_list=[], tag=''):
                         'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                         'ToPort': 22,
                     },
+                    {
+                        'FromPort': 0,
+                        'IpProtocol': '-1',
+                        'IpRanges': [{'CidrIp': f'{ip}/32'} for ip in ip_list],
+                        'ToPort': 65535,
+                    },
+                ]
+            )
+            if len(security_group.ip_permissions_egress) > 0:
+                security_group.revoke_egress(
+                    IpPermissions=security_group.ip_permissions_egress)
+
+            security_group.authorize_egress(
+                IpPermissions=[
                     {
                         'FromPort': 0,
                         'IpProtocol': '-1',
@@ -299,12 +315,14 @@ def generate_accounts(n_parties, chain, phrases_path, account_ids_path):
 
 
 def derive_account_from_seed(seed, path):
-    substrate_ctx = Substrate.FromSeedAndPath(seed, f'//{path}', SubstrateCoins.GENERIC)
+    substrate_ctx = Substrate.FromSeedAndPath(
+        seed, f'//{path}', SubstrateCoins.GENERIC)
     return substrate_ctx.PublicKey().ToAddress()
 
 
 def generate_accounts_from_paths(paths):
-    seed_bytes = SubstrateBip39SeedGenerator("bottom drive obey lake curtain smoke basket hold race lonely fit walk").Generate()
+    seed_bytes = SubstrateBip39SeedGenerator(
+        "bottom drive obey lake curtain smoke basket hold race lonely fit walk").Generate()
 
     return (derive_account_from_seed(seed_bytes, path) for path in paths)
 
@@ -328,6 +346,7 @@ def bootstrap_nodes(account_ids, chain, **custom_flags):
 
     for account_id in account_ids:
         run(cmd + ['--account-id', f'{account_id}'])
+
 
 def bootstrap_chain(account_ids, chain, benchmark_config=None, rich_accounts=[], **custom_flags):
     ''' Create the chain spec. '''
@@ -370,7 +389,7 @@ def bootstrap_chain(account_ids, chain, benchmark_config=None, rich_accounts=[],
 
     if benchmark_config is not None:
         prepare_benchmark_accounts(chainspec, benchmark_config['n_of_accounts'],
-                                  benchmark_config['azero_amount'])
+                                   benchmark_config['azero_amount'])
 
     with open('chainspec.json', 'w') as f:
         json.dump(chainspec, f, indent=4)
@@ -403,7 +422,8 @@ def prepare_benchmark_accounts(chainspec, n_of_accounts, azero_amount):
     n_of_accounts = int(n_of_accounts)
     azero_amount = int(azero_amount)
 
-    bench_accounts = generate_accounts_from_paths((str(i) for i in range(n_of_accounts)))
+    bench_accounts = generate_accounts_from_paths(
+        (str(i) for i in range(n_of_accounts)))
     amount = azero_amount * azero()
     balances = ((aid, amount) for aid in bench_accounts)
 
@@ -427,13 +447,16 @@ def write_addresses(ip_list):
         for ip in ip_list:
             f.write(ip+'\n')
 
+
 def write_bootnodes(bootnodes):
     with open('bootnodes', 'w') as f:
         for bootnode in bootnodes:
             f.write(bootnode+'\n')
 
+
 def use_regions():
     return ['eu-central-1', 'eu-west-1', 'eu-west-2', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2']
+
 
 def testnet_bootnodes():
     return [
@@ -443,6 +466,7 @@ def testnet_bootnodes():
         '/dns4/bootnode-us-east-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWQFkkFr5aM5anGEiUCQiGUdRyWgrdpvSjBgWAUS9srLE4',
         '/dns4/bootnode-us-east-2-0.test.azero.dev/tcp/30333/p2p/12D3KooWD5s2dkifJua69RbLwEREDdJjsNHvavNRGxdCvzhoeaLc'
     ]
+
 
 def default_region():
     ''' Helper function for getting default region name for current setup.'''
@@ -528,5 +552,5 @@ def create_prometheus_configuration(ips: List[str]):
     }, {
         'job_name': 'node',
         'scrape_interval': '5s',
-        'static_configs': [{'targets': node_targets }]
+        'static_configs': [{'targets': node_targets}]
     }]}
