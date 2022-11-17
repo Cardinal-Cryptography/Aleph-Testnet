@@ -137,7 +137,7 @@ def update_security_group(region_name, ip_list=[], tag=''):
                         'ToPort': 9944,
                     },
                     {
-                        'FromPort': 10000,
+                        'FromPort': 0,
                         'IpProtocol': '-1',
                         'IpRanges': [{'CidrIp': f'{ip}/32'} for ip in ip_list],
                         'ToPort': 65535,
