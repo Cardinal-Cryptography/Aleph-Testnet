@@ -142,12 +142,12 @@ def run_nginx(conn):
 
 def pid_to_auth(pid):
     with open('validator_accounts', 'r') as f:
-        return f.readlines()[int(pid)][:-1]
+        return f.readlines()[int(pid)].strip()
 
 
 def pid_to_addr(pid):
     with open('addresses', 'r') as f:
-        return f.readlines()[int(pid)][:-1]
+        return f.readlines()[int(pid)].strip()
 
 
 def get_node_flags(auth, bootnodes, addr):
