@@ -149,21 +149,6 @@ def instances_state_in_region(region_name=default_region(), tag='dev'):
 
     return states
 
-def get_pid_ips(pids):
-    if pids is None:
-        with open('addresses', 'r') as f:
-            return map(lambda line: line.strip(), f.readlines())
-    else:
-        ips = []
-        for pid in pids:
-            line = int(pid) + 1
-            bashCommand = ["sed", f"{line}!d", "addresses"]
-            process = Popen(bashCommand, stdout=PIPE)
-            address, error = process.communicate()
-            ips.append(address.decode('utf-8').strip())
-        return ips
-
-
 
 def run_task_in_region(task='test', region_name=default_region(), parallel=True, tag='dev', pids=None):
     '''
@@ -178,7 +163,8 @@ def run_task_in_region(task='test', region_name=default_region(), parallel=True,
     # this function doesn't actually work for multiple regions
     # and is unlikely to work in general
     # so it fits perfectly with the code 'round here...
-    ip_list = get_pid_ips(pids)
+    # edit: now it works :)
+    ip_list = instances_ip_in_region(region_name, tag)
     if parallel:
         hosts = " ".join(["ubuntu@"+ip for ip in ip_list])
         pcmd = f'parallel {fab_cmd()} -H'
@@ -377,7 +363,7 @@ def run_task(task='test', regions=use_regions(), parallel=True, tag='dev', pids=
     '''
 
     return exec_for_regions(partial(run_task_in_region, task,
-                     parallel=parallel, tag=tag), regions, parallel, pids)
+                                    parallel=parallel, tag=tag), regions, parallel, pids)
 
 
 def run_cmd(cmd='ls', regions=use_regions(), parallel=True, tag='dev'):
@@ -506,7 +492,8 @@ def setup_infrastructure(n_parties, chain='dev', regions=use_regions(), instance
 
     os.makedirs('data', exist_ok=True)
 
-    parties = generate_accounts(n_parties, chain, 'validator_phrases', 'validator_accounts')
+    parties = generate_accounts(
+        n_parties, chain, 'validator_phrases', 'validator_accounts')
     if chain != 'testnet':
         color_print('Generating chainspec')
         bootstrap_chain(parties[:n_validators], chain,
@@ -575,11 +562,11 @@ def setup_nodes(n_parties, chain='dev', regions=use_regions(), instance_type='t2
         run_task('create-testnet-dispatch-cmd', regions, parallel, tag, pids)
     else:
         run_task('create-dispatch-cmd', regions, parallel, tag, pids)
-        
 
     run_task('install-prometheus-exporter', regions, parallel, tag)
 
     return pids
+
 
 def change_validators(regions, tag, pids):
     color_print('collecting validator accounts')
@@ -681,7 +668,8 @@ def run_devnet(n_parties, regions=use_regions(), instance_type='t2.micro'):
 
 def setup_prometheus(region=default_region(), tag='prometheus', target_regions=use_regions(), target_tag="dev"):
     color_print('retrieving target ips')
-    ips = [ip for region in target_regions for ip in instances_ip_in_region(region_name=region, tag=target_tag)]
+    ips = [ip for region in target_regions for ip in instances_ip_in_region(
+        region_name=region, tag=target_tag)]
     print('target ips:', ips)
 
     color_print('launching instance')
@@ -701,14 +689,16 @@ def setup_prometheus(region=default_region(), tag='prometheus', target_regions=u
         yaml.dump(config, yml_file)
 
     color_print('sending prometheus.yml configuration file')
-    run_task('send-prometheus-config', regions=[region], parallel=False, tag=tag)
+    run_task('send-prometheus-config',
+             regions=[region], parallel=False, tag=tag)
 
     color_print('intalling prometheus')
     run_task('install-prometheus', regions=[region], parallel=False, tag=tag)
 
 
 def setup_smart_flooder(path_to_contract_repo, region=default_region(), tag='dev', pids=None):
-    shutil.copytree(path_to_contract_repo, './bin/contracts-cli', ignore=shutil.ignore_patterns('.git', 'node_modules', 'target'), dirs_exist_ok=True)
+    shutil.copytree(path_to_contract_repo, './bin/contracts-cli',
+                    ignore=shutil.ignore_patterns('.git', 'node_modules', 'target'), dirs_exist_ok=True)
 
     call('yarn'.split(), cwd='./bin/contracts-cli/deploy')
     call('yarn redspot compile'.split(), cwd='./bin/contracts-cli/deploy')
