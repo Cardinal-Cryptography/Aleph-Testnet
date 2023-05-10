@@ -16,7 +16,7 @@ def image_id_in_region(region_name, image_name='testnet1'):
     '''Find id of os image we use. The id may differ for different regions'''
 
     if image_name == 'ubuntu':
-        image_name = 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20210413'
+        image_name = 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20230502'
 
     ec2 = boto3.resource('ec2', region_name)
     # in the below, there is only one image in the iterator
